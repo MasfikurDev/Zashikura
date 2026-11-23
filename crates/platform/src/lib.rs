@@ -129,8 +129,8 @@ impl MachineInspector for SysinfoMachineInspector {
                     continue;
                 }
                 let path = entry.path();
-                let temperature = read_signed_number(&path.join("temp"))
-                    .map(|value| value as f32 / 1000.0);
+                let temperature =
+                    read_signed_number(&path.join("temp")).map(|value| value as f32 / 1000.0);
                 if temperature.is_some() {
                     let (maximum_celsius, critical_celsius) = read_thermal_thresholds(&path);
                     sensors.push(ThermalSensor {
