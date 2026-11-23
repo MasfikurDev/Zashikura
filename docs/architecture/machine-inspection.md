@@ -28,7 +28,7 @@ The aggregator always returns every category result. A failure or unavailable re
 
 ## Collection boundaries
 
-The cross-platform adapter uses `sysinfo` for identity, CPU, memory, storage and network information. Linux-specific hardware details are read from narrowly scoped kernel interfaces under `/sys/class` (DMI, DRM, thermal and power-supply attributes). These reads do not enumerate user files, inspect application-owned directories, or modify machine state.
+The cross-platform adapter uses `sysinfo` for identity, CPU, memory, storage and network information. Linux-specific hardware details are read from narrowly scoped kernel interfaces under `/sys/class` (DMI, DRM, thermal and power-supply attributes). The sysinfo adapter refreshes only the CPU and memory data needed by this feature; it does not enumerate processes. These reads do not enumerate user files, inspect application-owned directories, or modify machine state.
 
 Unsupported platform-specific categories report `Unavailable`. Do not infer hardware properties from model names or fill missing values with guesses.
 
