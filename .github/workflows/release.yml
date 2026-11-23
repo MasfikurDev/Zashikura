@@ -158,8 +158,22 @@ jobs:
           cargo deb --no-build -p zashikura-cli \
             --output "dist/zashikura_${version}_${{ matrix.deb_arch }}.deb"
 
+          rpm_version="${version%%-*}"
+          rpm_release="1"
+          if [[ "$version" == *-* ]]; then
+            rpm_release="0.${version#*-}"
+          fi
+          cat > dist/rpm-metadata.toml <<EOF
+          [package.metadata.generate-rpm]
+          version = "$rpm_version"
+          release = "$rpm_release"
+          EOF
+
+          rpm_file="dist/zashikura-${version}-${{ matrix.rpm_arch }}.rpm"
           cargo generate-rpm -p zashikura-cli \
-            -o "dist/zashikura-${version}-1.${{ matrix.rpm_arch }}.rpm"
+            --metadata-overwrite="dist/rpm-metadata.toml" \
+            -o "$rpm_file"
+          rm dist/rpm-metadata.toml
 
           archive_dir="zashikura-${version}-linux-${{ matrix.arch }}"
           mkdir -p "dist/$archive_dir"
@@ -169,7 +183,6 @@ jobs:
           rm -rf "dist/$archive_dir"
 
           deb_file="dist/zashikura_${version}_${{ matrix.deb_arch }}.deb"
-          rpm_file="dist/zashikura-${version}-1.${{ matrix.rpm_arch }}.rpm"
           actual_deb_arch="$(dpkg-deb --field "$deb_file" Architecture)"
           if [[ "$actual_deb_arch" != "${{ matrix.deb_arch }}" ]]; then
             echo "::error::Expected Debian architecture ${{ matrix.deb_arch }}, got $actual_deb_arch"
@@ -177,8 +190,12 @@ jobs:
           fi
           dpkg-deb --contents "$deb_file" | grep -F "usr/bin/zashikura"
           actual_rpm_arch="$(rpm -qp --qf "%{ARCH}" "$rpm_file")"
-          if [[ "$actual_rpm_arch" != "${{ matrix.rpm_arch }}" ]]; then
-            echo "::error::Expected RPM architecture ${{ matrix.rpm_arch }}, got $actual_rpm_arch"
+          actual_rpm_version="$(rpm -qp --qf "%{VERSION}" "$rpm_file")"
+          actual_rpm_release="$(rpm -qp --qf "%{RELEASE}" "$rpm_file")"
+          if [[ "$actual_rpm_arch" != "${{ matrix.rpm_arch }}" ||
+                "$actual_rpm_version" != "$rpm_version" ||
+                "$actual_rpm_release" != "$rpm_release" ]]; then
+            echo "::error::Unexpected RPM metadata: $actual_rpm_arch $actual_rpm_version-$actual_rpm_release"
             exit 1
           fi
           rpm -qpl "$rpm_file" | grep -Fx "/usr/bin/zashikura"
