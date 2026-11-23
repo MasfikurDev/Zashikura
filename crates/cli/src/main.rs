@@ -2,9 +2,9 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use serde::Serialize;
-use zashikura_application::InspectSystem;
+use zashikura_application::{InspectMachine, InspectSystem};
 use zashikura_core::SystemSnapshot;
-use zashikura_platform::SysinfoSystemInspector;
+use zashikura_platform::{SysinfoMachineInspector, SysinfoSystemInspector};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -38,6 +38,8 @@ enum InspectCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Inspect all available machine hardware and resource categories.
+    Machine,
 }
 
 fn main() -> ExitCode {
@@ -68,6 +70,11 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 print_system_snapshot(&snapshot);
             }
+        }
+        Command::Inspect { command: InspectCommand::Machine } => {
+            let snapshot = InspectMachine::new(SysinfoMachineInspector).execute();
+            println!("Machine inspection");
+            println!("{snapshot:#?}");
         }
     }
     Ok(())
@@ -182,6 +189,12 @@ mod tests {
                 command: InspectCommand::System { json: true }
             }
         ));
+    }
+
+    #[test]
+    fn machine_inspection_command_is_accepted() {
+        let cli = Cli::try_parse_from(["zashikura", "inspect", "machine"]).unwrap();
+        assert!(matches!(cli.command, Command::Inspect { command: InspectCommand::Machine }));
     }
 
     #[test]

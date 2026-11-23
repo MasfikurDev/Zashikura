@@ -25,7 +25,7 @@ The Rust workspace has explicit boundaries:
 
 Future interfaces should call application use cases rather than implement their own system logic. Persistence is intentionally deferred until a concrete local-history or inventory requirement is designed.
 
-See [the architecture overview](docs/architecture/overview.md) and [extension points](docs/architecture/extension-points.md) before adding a new interface or integration.
+See [the architecture overview](docs/architecture/overview.md), [machine inspection architecture](docs/architecture/machine-inspection.md), and [extension points](docs/architecture/extension-points.md) before adding a new interface or integration.
 
 ## AI-assisted development
 
@@ -38,7 +38,7 @@ AI-facing integrations such as MCP will be implemented as separate interfaces ov
 
 ## Current capabilities
 
-The initial read-only system inspection reports hostname, operating-system details, logical processor count, and memory usage. The CLI is intended to remain usable on Linux, Windows, and macOS for now. Linux is the only active development and CI validation environment; non-Linux feature work and platform-specific testing are deferred.
+The read-only machine inspection reports identity, processor, memory, storage, network, thermal, firmware/board, graphics, and power information when the platform exposes it. Categories are collected independently and report available, unavailable, or failed results without discarding other categories. The CLI provides `inspect system` for the original basic snapshot and `inspect machine` for the expanded report. Linux is the active development and CI validation environment; Linux-specific hardware discovery remains isolated in the platform crate.
 
 ## Development
 
