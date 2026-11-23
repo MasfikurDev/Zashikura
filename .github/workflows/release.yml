@@ -7,15 +7,25 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version from the workspace Cargo.toml (for example 0.1.0)"
+        description: "Stable version from the workspace Cargo.toml (for example 0.1.0)"
         required: true
         type: string
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to build and publish"
+        required: true
+        type: string
+      prerelease:
+        description: "Publish as a pre-release"
+        required: true
+        type: boolean
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.version || github.event.inputs.version || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -23,7 +33,8 @@ jobs:
     name: Build Linux ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
     env:
-      RELEASE_VERSION: ${{ github.event.inputs.version || github.ref_name }}
+      RELEASE_VERSION: ${{ inputs.version || github.event.inputs.version || github.ref_name }}
+      IS_PRERELEASE: ${{ inputs.prerelease || (github.event_name == 'push' && contains(github.ref_name, '-')) }}
     strategy:
       fail-fast: false
       matrix:
@@ -51,13 +62,36 @@ jobs:
       - name: Cache Rust build artifacts
         uses: Swatinem/rust-cache@v2
 
+      - name: Set generated pre-release version
+        if: github.event_name == 'workflow_call' && inputs.prerelease
+        shell: bash
+        run: |
+          version="${RELEASE_VERSION#v}"
+          VERSION="$version" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import re
+
+          path = Path("Cargo.toml")
+          content = path.read_text()
+          content, count = re.subn(
+              r'(?m)^version = "[^"]+"$',
+              f'version = "{os.environ["VERSION"]}"',
+              content,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit("Could not update the workspace version")
+          path.write_text(content)
+          PY
+
       - name: Verify release version and runner architecture
         shell: bash
         run: |
           version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "zashikura-cli") | .version')"
-          tag_version="${RELEASE_VERSION#v}"
-          if [[ "$tag_version" != "$version" ]]; then
-            echo "::error::Requested version $tag_version does not match workspace version $version"
+          requested="${RELEASE_VERSION#v}"
+          if [[ "$requested" != "$version" ]]; then
+            echo "::error::Requested version $requested does not match workspace version $version"
             exit 1
           fi
 
@@ -147,11 +181,14 @@ jobs:
 
   publish:
     name: Publish GitHub Release
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
     permissions:
       contents: write
     runs-on: ubuntu-22.04
     needs: build
+    env:
+      RELEASE_VERSION: ${{ inputs.version || github.event.inputs.version || github.ref_name }}
+      IS_PRERELEASE: ${{ inputs.prerelease || (github.event_name == 'push' && contains(github.ref_name, '-')) }}
     steps:
       - name: Download architecture artifacts
         uses: actions/download-artifact@v4
@@ -170,14 +207,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          args=(
-            "$GITHUB_REF_NAME"
-            dist/*
-            --title "Zashikura $GITHUB_REF_NAME"
-            --generate-notes
-            --verify-tag
-          )
-          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+          tag="${RELEASE_VERSION}"
+          if [[ "$tag" != v* ]]; then tag="v$tag"; fi
+          args=("$tag" dist/* --title "Zashikura $tag" --generate-notes)
+          if [[ "$IS_PRERELEASE" == "true" ]]; then
             args+=(--prerelease)
+          fi
+          if [[ "$GITHUB_EVENT_NAME" != "push" ]]; then
+            args+=(--target "$GITHUB_SHA")
+          else
+            args+=(--verify-tag)
           fi
           gh release create "${args[@]}"
