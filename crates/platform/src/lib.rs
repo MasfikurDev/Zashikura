@@ -117,23 +117,28 @@ impl MachineInspector for SysinfoMachineInspector {
     fn inspect_thermal(&self) -> Inspection<Vec<ThermalSensor>> {
         #[cfg(target_os = "linux")]
         {
+            let entries = match read_dir_entries(Path::new("/sys/class/thermal")) {
+                Ok(Some(entries)) => entries,
+                Ok(None) => return Inspection::unavailable(),
+                Err(error) => return Inspection::failed(error),
+            };
             let mut sensors = Vec::new();
-            if let Ok(entries) = fs::read_dir("/sys/class/thermal") {
-                for entry in entries.flatten() {
-                    let name = entry.file_name().to_string_lossy().into_owned();
-                    if !name.starts_with("thermal_zone") {
-                        continue;
-                    }
-                    let path = entry.path();
-                    let temperature = read_number(&path.join("temp")).map(|v| v as f32 / 1000.0);
-                    if temperature.is_some() {
-                        sensors.push(ThermalSensor {
-                            label: read_attribute(&path.join("type")).unwrap_or(name),
-                            temperature_celsius: temperature,
-                            maximum_celsius: None,
-                            critical_celsius: None,
-                        });
-                    }
+            for entry in entries {
+                let name = entry.file_name().to_string_lossy().into_owned();
+                if !name.starts_with("thermal_zone") {
+                    continue;
+                }
+                let path = entry.path();
+                let temperature = read_signed_number(&path.join("temp"))
+                    .map(|value| value as f32 / 1000.0);
+                if temperature.is_some() {
+                    let (maximum_celsius, critical_celsius) = read_thermal_thresholds(&path);
+                    sensors.push(ThermalSensor {
+                        label: read_attribute(&path.join("type")).unwrap_or(name),
+                        temperature_celsius: temperature,
+                        maximum_celsius,
+                        critical_celsius,
+                    });
                 }
             }
             if sensors.is_empty() {
@@ -187,11 +192,13 @@ impl MachineInspector for SysinfoMachineInspector {
     fn inspect_graphics(&self) -> Inspection<Vec<GraphicsDevice>> {
         #[cfg(target_os = "linux")]
         {
-            let Ok(entries) = fs::read_dir("/sys/class/drm") else {
-                return Inspection::unavailable();
+            let entries = match read_dir_entries(Path::new("/sys/class/drm")) {
+                Ok(Some(entries)) => entries,
+                Ok(None) => return Inspection::unavailable(),
+                Err(error) => return Inspection::failed(error),
             };
             let mut devices = Vec::new();
-            for entry in entries.flatten() {
+            for entry in entries {
                 let node = entry.file_name().to_string_lossy().into_owned();
                 let Some(index) = node.strip_prefix("card") else {
                     continue;
@@ -228,11 +235,13 @@ impl MachineInspector for SysinfoMachineInspector {
     fn inspect_power(&self) -> Inspection<Vec<PowerSupply>> {
         #[cfg(target_os = "linux")]
         {
-            let Ok(entries) = fs::read_dir("/sys/class/power_supply") else {
-                return Inspection::unavailable();
+            let entries = match read_dir_entries(Path::new("/sys/class/power_supply")) {
+                Ok(Some(entries)) => entries,
+                Ok(None) => return Inspection::unavailable(),
+                Err(error) => return Inspection::failed(error),
             };
             let supplies = entries
-                .flatten()
+                .into_iter()
                 .map(|entry| {
                     let path = entry.path();
                     let number = |key: &str| read_number(&path.join(key));
@@ -280,6 +289,53 @@ fn read_number(path: &Path) -> Option<u64> {
     read_attribute(path)?.parse().ok()
 }
 
+#[cfg(target_os = "linux")]
+fn read_signed_number(path: &Path) -> Option<i64> {
+    read_attribute(path)?.parse().ok()
+}
+
+#[cfg(target_os = "linux")]
+fn read_dir_entries(path: &Path) -> Result<Option<Vec<fs::DirEntry>>, String> {
+    match fs::read_dir(path) {
+        Ok(entries) => entries
+            .collect::<Result<Vec<_>, _>>()
+            .map(Some)
+            .map_err(|error| format!("{}: {error}", path.display())),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(format!("{}: {error}", path.display())),
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn read_thermal_thresholds(path: &Path) -> (Option<f32>, Option<f32>) {
+    let Ok(Some(entries)) = read_dir_entries(path) else {
+        return (None, None);
+    };
+    let mut maximum: Option<i64> = None;
+    let mut critical: Option<i64> = None;
+    for entry in entries {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let Some(index) = name
+            .strip_prefix("trip_point_")
+            .and_then(|value| value.strip_suffix("_temp"))
+        else {
+            continue;
+        };
+        let Some(temperature) = read_signed_number(&entry.path()) else {
+            continue;
+        };
+        maximum = Some(maximum.map_or(temperature, |value| value.max(temperature)));
+        let kind = path.join(format!("trip_point_{index}_type"));
+        if read_attribute(&kind).is_some_and(|value| value.eq_ignore_ascii_case("critical")) {
+            critical = Some(critical.map_or(temperature, |value| value.max(temperature)));
+        }
+    }
+    (
+        maximum.map(|value| value as f32 / 1000.0),
+        critical.map(|value| value as f32 / 1000.0),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::{SysinfoMachineInspector, non_empty};
@@ -290,6 +346,21 @@ mod tests {
         assert_eq!(non_empty("  \n"), None);
         assert_eq!(non_empty(" value \n").as_deref(), Some("value"));
     }
+    #[test]
+    fn signed_thermal_values_preserve_negative_temperatures() {
+        assert_eq!("-1250".parse::<i64>().ok(), Some(-1250));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn missing_sysfs_category_is_unavailable_not_failed() {
+        use std::path::Path;
+        assert!(matches!(
+            super::read_dir_entries(Path::new("/definitely/not/a/zashikura/path")),
+            Ok(None)
+        ));
+    }
+
     #[test]
     fn legacy_system_inspection_remains_available() {
         use super::SysinfoSystemInspector;
