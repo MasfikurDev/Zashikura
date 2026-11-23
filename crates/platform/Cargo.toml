@@ -9,3 +9,4 @@ repository.workspace = true
 [dependencies]
 zashikura-application = { path = "../application" }
 zashikura-core = { path = "../core" }
+sysinfo = { workspace = true }

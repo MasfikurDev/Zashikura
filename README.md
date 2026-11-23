@@ -2,7 +2,7 @@
 
 Zashikura is a local-first tool for understanding and looking after your computer. It aims to make software, resources, activity, and their relationships easier to understand while keeping maintenance decisions under your control.
 
-The project is CLI-first. The command-line interface is the first way to use Zashikura, not the boundary of its architecture. The core is being structured so future desktop interfaces, wrappers, automation integrations, and MCP support can reuse the same application capabilities.
+The project is CLI-first. The command-line interface is the first way to use Zashikura, not the boundary of its architecture. Future desktop interfaces, wrappers, automation integrations, and MCP support should reuse the same application capabilities.
 
 ## Project principles
 
@@ -14,17 +14,16 @@ The project is CLI-first. The command-line interface is the first way to use Zas
 
 ## Architecture
 
-Zashikura is a Rust workspace with explicit boundaries:
+The Rust workspace has explicit boundaries:
 
 | Crate | Responsibility |
 | --- | --- |
-| `zashikura-core` | Domain types, rules, and concepts. No operating-system or interface dependencies. |
-| `zashikura-application` | Application use cases and ports consumed by interfaces and implemented by adapters. |
-| `zashikura-platform` | Operating-system discovery and system-operation adapters. |
-| `zashikura-storage` | Local persistence adapters and schema management. |
-| `zashikura-cli` | CLI parsing, terminal presentation, and application composition. |
+| zashikura-core | Platform-independent domain types and rules. |
+| zashikura-application | Interface-neutral use cases and ports. |
+| zashikura-platform | Operating-system discovery and system-operation adapters. |
+| zashikura-cli | CLI parsing, terminal presentation, and application composition. |
 
-Future interfaces should depend on the application layer rather than implement their own system logic. A desktop UI, wrapper, or MCP server should be a separate entry point that composes the same application services and infrastructure adapters.
+Future interfaces should call application use cases rather than implement their own system logic. Persistence is intentionally deferred until a concrete local-history or inventory requirement is designed.
 
 See [the architecture overview](docs/architecture/overview.md) and [extension points](docs/architecture/extension-points.md) before adding a new interface or integration.
 
@@ -37,22 +36,22 @@ AI coding tools are supported through explicit repository guidance and documente
 
 AI-facing integrations such as MCP will be implemented as separate interfaces over the application API. They will not receive privileged or unrestricted system access by default.
 
-## Development status
+## Current capabilities
 
-The workspace foundation is being established. The current CLI is intentionally small. System discovery, persistence, and maintenance capabilities will be added behind the boundaries above as their behavior and safety requirements are defined.
+The initial read-only system inspection reports hostname, operating-system details, logical processor count, and memory usage. Fields unavailable on a platform are represented as unknown rather than fabricated.
 
 ## Development
 
-Install the stable Rust toolchain with the `rustfmt` and `clippy` components.
+Install the stable Rust toolchain with the rustfmt and clippy components.
 
-Check and test the workspace:
-
-```sh
+~~~
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+cargo test --workspace --all-targets
 cargo run -p zashikura-cli -- --help
-```
+cargo run -p zashikura-cli -- inspect system
+cargo run -p zashikura-cli -- inspect system --json
+~~~
 
 ## Contributing
 
