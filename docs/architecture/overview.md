@@ -63,7 +63,7 @@ The first application capability is a read-only system snapshot. The core owns t
 
 This establishes the dependency direction with executable behavior and tests. The JSON representation belongs to the CLI boundary and is not part of the domain model.
 
-## Cross-cutting rules
+## Platform capability reporting\n\nPlatform adapters must report field availability and measurement scope explicitly. A missing or restricted value must not be represented as zero or silently omitted. Independent inspection categories should preserve successful partial results when another category fails. The Termux and Android constraints, availability states, and validation requirements are defined in [platform capability design](platform-capabilities.md) and [ADR-0001](../decisions/0001-platform-capability-reporting.md).\n\n## Cross-cutting rules
 
 - Keep the application API independent of any transport or presentation format.
 - Convert application results into CLI, JSON, MCP, or UI-specific representations at the relevant interface boundary.
