@@ -11,7 +11,7 @@ For a new crate, interface, platform adapter, persistence mechanism, or integrat
 - Domain logic belongs in `zashikura-core`.
 - Application workflows belong in `zashikura-application`.
 - Operating-system access belongs in `zashikura-platform`.
-- Persistence belongs in `zashikura-storage`.
+- Add a storage adapter only when a concrete persistence use case and data lifecycle are defined; keep it behind application ports.
 - Command parsing and terminal presentation belong in `zashikura-cli`.
 - New interfaces should call application capabilities. They must not duplicate domain rules or access operating-system APIs directly.
 

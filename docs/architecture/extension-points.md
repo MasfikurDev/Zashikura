@@ -4,7 +4,7 @@ This document defines how future entry points should integrate without expanding
 
 ## Desktop or web interface
 
-Add a separate application entry point under `apps/` when a real UI is planned. It should call `zashikura-application` and compose the platform and storage adapters it needs. It must not duplicate discovery, policy, or maintenance logic.
+Add a separate application entry point under `apps/` when a real UI is planned. It should call `zashikura-application` and compose the platform adapters and, when persistence is required, storage adapters it needs. It must not duplicate discovery, policy, or maintenance logic.
 
 A web interface must not imply a remote service or telemetry requirement. Local execution and local data ownership remain the defaults.
 
@@ -31,7 +31,7 @@ Before adding a new workspace member:
 1. Identify the concrete user-facing capability it provides.
 2. Define which application use cases it needs.
 3. Keep protocol and presentation types at the boundary.
-4. Reuse existing platform and storage adapters.
+4. Reuse existing platform adapters and any storage adapters already justified by concrete persistence requirements.
 5. Add tests for authorization, errors, and data handling.
 6. Document platform support and any new permissions.
 

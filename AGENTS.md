@@ -15,7 +15,7 @@ These instructions apply to the entire repository. Follow them alongside the use
 - `zashikura-core`: domain concepts, invariants, and rules. Keep it independent of operating-system APIs, persistence, CLI frameworks, UI frameworks, and external protocols.
 - `zashikura-application`: interface-neutral use cases and ports. This is the shared application API for all entry points.
 - `zashikura-platform`: operating-system discovery and operations. Isolate platform-specific behavior here.
-- `zashikura-storage`: local persistence, migrations, and storage adapters. Do not leak database types into domain or interface APIs.
+- Future storage adapters: local persistence and migrations, introduced only when a concrete persistence use case exists. Do not leak database types into domain or interface APIs.
 - `zashikura-cli`: command parsing, terminal presentation, exit codes, and CLI composition only.
 
 Future UI applications, wrappers, automation integrations, and MCP servers must call application use cases. They must not duplicate system logic or make the application layer depend on their transport or presentation framework.
