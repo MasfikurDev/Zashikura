@@ -12,7 +12,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -40,6 +40,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
@@ -90,6 +92,11 @@ jobs:
           ./target/release/zashikura inspect system --json
           ./target/release/zashikura inspect machine
 
+      - name: Install package inspection tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y dpkg-dev liblzma-dev rpm
+
       - name: Install Linux package builders
         run: |
           cargo install cargo-deb --version 3.8.0 --locked
@@ -122,8 +129,12 @@ jobs:
             exit 1
           fi
           dpkg-deb --contents "$deb_file" | grep -F "usr/bin/zashikura"
-          test -s "$rpm_file"
-          file "$rpm_file"
+          actual_rpm_arch="$(rpm -qp --qf "%{ARCH}" "$rpm_file")"
+          if [[ "$actual_rpm_arch" != "${{ matrix.rpm_arch }}" ]]; then
+            echo "::error::Expected RPM architecture ${{ matrix.rpm_arch }}, got $actual_rpm_arch"
+            exit 1
+          fi
+          rpm -qpl "$rpm_file" | grep -Fx "/usr/bin/zashikura"
           tar -tzf "dist/${archive_dir}.tar.gz" | grep -F "$archive_dir/zashikura"
 
       - name: Upload release artifacts
@@ -137,6 +148,8 @@ jobs:
   publish:
     name: Publish GitHub Release
     if: github.event_name == 'push'
+    permissions:
+      contents: write
     runs-on: ubuntu-22.04
     needs: build
     steps:
