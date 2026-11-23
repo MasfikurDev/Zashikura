@@ -116,7 +116,11 @@ jobs:
 
           deb_file="dist/zashikura_${version}_${{ matrix.deb_arch }}.deb"
           rpm_file="dist/zashikura-${version}-1.${{ matrix.rpm_arch }}.rpm"
-          dpkg-deb --field "$deb_file" Architecture
+          actual_deb_arch="$(dpkg-deb --field "$deb_file" Architecture)"
+          if [[ "$actual_deb_arch" != "${{ matrix.deb_arch }}" ]]; then
+            echo "::error::Expected Debian architecture ${{ matrix.deb_arch }}, got $actual_deb_arch"
+            exit 1
+          fi
           dpkg-deb --contents "$deb_file" | grep -F "usr/bin/zashikura"
           test -s "$rpm_file"
           file "$rpm_file"
