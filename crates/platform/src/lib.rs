@@ -97,7 +97,7 @@ impl MachineInspector for SysinfoMachineInspector {
             networks
                 .iter()
                 .map(|(name, data)| NetworkInterface {
-                    name: name.to_string_lossy().into_owned(),
+                    name: name.clone(),
                     received_bytes: data.total_received(),
                     transmitted_bytes: data.total_transmitted(),
                     received_packets: data.total_packets_received(),
