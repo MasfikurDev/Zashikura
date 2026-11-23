@@ -1,10 +1,10 @@
-use std::process::ExitCode;
+use std::{fmt::Debug, process::ExitCode};
 
 use clap::{Parser, Subcommand};
 use serde::Serialize;
-use zashikura_application::InspectSystem;
-use zashikura_core::SystemSnapshot;
-use zashikura_platform::SysinfoSystemInspector;
+use zashikura_application::{InspectMachine, InspectSystem};
+use zashikura_core::{Inspection, MachineSnapshot, SystemSnapshot};
+use zashikura_platform::{SysinfoMachineInspector, SysinfoSystemInspector};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -38,6 +38,8 @@ enum InspectCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Inspect all available machine hardware and resource categories.
+    Machine,
 }
 
 fn main() -> ExitCode {
@@ -68,6 +70,12 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 print_system_snapshot(&snapshot);
             }
+        }
+        Command::Inspect {
+            command: InspectCommand::Machine,
+        } => {
+            let snapshot = InspectMachine::new(SysinfoMachineInspector).execute();
+            print_machine_snapshot(&snapshot);
         }
     }
     Ok(())
@@ -125,6 +133,27 @@ fn print_system_snapshot(snapshot: &SystemSnapshot) {
     );
 }
 
+fn print_machine_snapshot(snapshot: &MachineSnapshot) {
+    println!("Machine inspection");
+    print_section("Identity", &snapshot.identity);
+    print_section("Processor", &snapshot.processor);
+    print_section("Memory", &snapshot.memory);
+    print_section("Storage", &snapshot.storage);
+    print_section("Network", &snapshot.network);
+    print_section("Thermal", &snapshot.thermal);
+    print_section("Firmware and board", &snapshot.firmware);
+    print_section("Graphics", &snapshot.graphics);
+    print_section("Power", &snapshot.power);
+}
+
+fn print_section<T: Debug>(name: &str, result: &Inspection<T>) {
+    match result {
+        Inspection::Available(value) => println!("{name}: available\n{value:#?}"),
+        Inspection::Unavailable => println!("{name}: unavailable"),
+        Inspection::Failed(failure) => println!("{name}: failed ({})", failure.message),
+    }
+}
+
 fn display_optional(value: &Option<String>) -> &str {
     value.as_deref().unwrap_or("Unavailable")
 }
@@ -180,6 +209,17 @@ mod tests {
             cli.command,
             Command::Inspect {
                 command: InspectCommand::System { json: true }
+            }
+        ));
+    }
+
+    #[test]
+    fn machine_inspection_command_is_accepted() {
+        let cli = Cli::try_parse_from(["zashikura", "inspect", "machine"]).unwrap();
+        assert!(matches!(
+            cli.command,
+            Command::Inspect {
+                command: InspectCommand::Machine
             }
         ));
     }

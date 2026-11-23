@@ -59,9 +59,9 @@ Owns argument parsing, command routing, terminal output, exit codes, output seri
 
 ## First vertical slice: read-only system inspection
 
-The first application capability is a read-only system snapshot. The core owns the platform-independent snapshot types. The application crate defines the SystemInspector port and InspectSystem use case. The platform crate implements the port. The CLI composes these parts and presents either human-readable text or JSON.
+The first application capability is read-only machine inspection. The core owns typed, platform-independent category models and explicit available, unavailable, and failed outcomes. The application crate defines the MachineInspector port and InspectMachine use case, which aggregates independent category results. The platform crate implements general discovery with sysinfo and narrowly scoped Linux hardware discovery through kernel sysfs interfaces. The CLI composes these parts. The original InspectSystem path remains available for the basic snapshot.
 
-This establishes the dependency direction with executable behavior and tests. The JSON representation belongs to the CLI boundary and is not part of the domain model.
+See [machine inspection architecture](machine-inspection.md) for category coverage, partial-result semantics, data sources, and extension rules. Output serialization and presentation remain at the CLI boundary.
 
 ## Cross-cutting rules
 
