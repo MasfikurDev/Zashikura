@@ -14,12 +14,12 @@ The project is CLI-first. The command-line interface is the first way to use Zas
 
 ## Install
 
-Download the matching package or portable archive from [GitHub Releases](https://github.com/MasfikurDev/Zashikura/releases/latest). Qualifying changes merged into `main` produce automatic beta pre-releases; stable releases are published after an explicit maintainer release action. See [the release process](docs/releases.md).
+Download the matching package or portable archive from [GitHub Releases](https://github.com/MasfikurDev/Zashikura/releases). Qualifying changes merged into `main` produce automatic beta pre-releases; stable releases are published after an explicit maintainer release action. See [the release process](docs/releases.md).
 
 | Linux architecture | Debian / Ubuntu | Fedora / RPM-based | GNU archive | Static standalone binary |
 | --- | --- | --- | --- | --- |
-| x86_64 | `zashikura_VERSION_amd64.deb` | `zashikura-VERSION-1.x86_64.rpm` | `zashikura-VERSION-linux-x86_64.tar.gz` | `zashikura-VERSION-linux-x86_64-musl` |
-| ARM64 | `zashikura_VERSION_arm64.deb` | `zashikura-VERSION-1.aarch64.rpm` | `zashikura-VERSION-linux-aarch64.tar.gz` | `zashikura-VERSION-linux-aarch64-musl` |
+| x86_64 | `zashikura_VERSION_amd64.deb` | `zashikura-VERSION-x86_64.rpm` | `zashikura-VERSION-linux-x86_64.tar.gz` | `zashikura-VERSION-linux-x86_64-musl` |
+| ARM64 | `zashikura_VERSION_arm64.deb` | `zashikura-VERSION-aarch64.rpm` | `zashikura-VERSION-linux-aarch64.tar.gz` | `zashikura-VERSION-linux-aarch64-musl` |
 
 Install a Debian package:
 
