@@ -52,12 +52,12 @@ Stable publication is intentionally an explicit maintainer action. Beta publicat
 
 Every release currently builds Linux packages on native Linux runners for both supported architectures:
 
-| Architecture | Debian package | RPM package | Portable archive |
-| --- | --- | --- | --- |
-| x86_64 | `.deb` (amd64) | `.rpm` (x86_64) | `.tar.gz` |
-| aarch64 | `.deb` (arm64) | `.rpm` (aarch64) | `.tar.gz` |
+| Architecture | Debian package | RPM package | GNU archive | Static standalone binary and archive |
+| --- | --- | --- | --- | --- |
+| x86_64 | `.deb` (amd64) | `.rpm` (x86_64) | `.tar.gz` | Raw musl binary and `-musl.tar.gz` |
+| aarch64 | `.deb` (arm64) | `.rpm` (aarch64) | `.tar.gz` | Raw musl binary and `-musl.tar.gz` |
 
-Builds run on Ubuntu 22.04 x86_64 and ARM64 runners. GNU/Linux binaries use the system glibc and require glibc 2.35 or newer. Packages install the executable at `/usr/bin/zashikura`. Portable archives contain the executable, README, and license.
+Builds run on Ubuntu 22.04 x86_64 and ARM64 runners. Debian, RPM, and GNU portable artifacts use the system glibc and require glibc 2.35 or newer. The standalone binaries are built for `x86_64-unknown-linux-musl` and `aarch64-unknown-linux-musl` with Cross and verified to have no ELF interpreter, so they do not depend on the host glibc or a Rust toolchain. Each archive contains the executable, README, and license.
 
 Each published release includes `SHA256SUMS`. Verify downloaded artifacts from the directory containing the downloaded files:
 
@@ -70,7 +70,7 @@ sha256sum -c SHA256SUMS
 1. Detect qualifying changes and calculate a version for automatic beta releases, or validate the manually requested stable version.
 2. Run formatting, Clippy, and workspace tests on native x86_64 and ARM64 Linux runners.
 3. Build the CLI and smoke-test version, help, basic inspection, and machine inspection commands.
-4. Build Debian and RPM packages plus a portable archive for each architecture; verify package architecture and contents.
+4. Build Debian and RPM packages plus a GNU archive for each architecture; verify package architecture and contents. Build and smoke-test static musl standalone binaries and matching archives for both architectures.
 5. Generate SHA-256 checksums and publish the GitHub Release only after all builds succeed.
 
 Pull requests and ordinary branch pushes never publish directly. Only the beta workflow on `main`, a manually dispatched stable release, or an explicitly pushed version tag can publish. Build jobs have read-only repository permissions; the publishing job alone receives write permission. The pipeline does not publish to external package repositories or modify the user's machine.
