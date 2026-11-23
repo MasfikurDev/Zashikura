@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version from the workspace Cargo.toml (for example 0.1.0)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -16,6 +22,8 @@ jobs:
   build:
     name: Build Linux ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
+    env:
+      RELEASE_VERSION: ${{ github.event.inputs.version || github.ref_name }}
     strategy:
       fail-fast: false
       matrix:
@@ -41,13 +49,13 @@ jobs:
       - name: Cache Rust build artifacts
         uses: Swatinem/rust-cache@v2
 
-      - name: Verify release tag and runner architecture
+      - name: Verify release version and runner architecture
         shell: bash
         run: |
           version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "zashikura-cli") | .version')"
-          tag_version="${GITHUB_REF_NAME#v}"
+          tag_version="${RELEASE_VERSION#v}"
           if [[ "$tag_version" != "$version" ]]; then
-            echo "::error::Tag version $tag_version does not match workspace version $version"
+            echo "::error::Requested version $tag_version does not match workspace version $version"
             exit 1
           fi
 
@@ -90,7 +98,7 @@ jobs:
       - name: Build Debian, RPM, and portable archive
         shell: bash
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${RELEASE_VERSION#v}"
           mkdir -p dist
           strip --strip-unneeded target/release/zashikura
 
@@ -98,13 +106,21 @@ jobs:
             --output "dist/zashikura_${version}_${{ matrix.deb_arch }}.deb"
 
           cargo generate-rpm -p zashikura-cli \
-            --output "dist/zashikura-${version}-1.${{ matrix.rpm_arch }}.rpm"
+            -o "dist/zashikura-${version}-1.${{ matrix.rpm_arch }}.rpm"
 
           archive_dir="zashikura-${version}-linux-${{ matrix.arch }}"
           mkdir -p "dist/$archive_dir"
           install -m 0755 target/release/zashikura "dist/$archive_dir/zashikura"
           install -m 0644 README.md LICENSE "dist/$archive_dir/"
           tar -czf "dist/${archive_dir}.tar.gz" -C dist "$archive_dir"
+
+          deb_file="dist/zashikura_${version}_${{ matrix.deb_arch }}.deb"
+          rpm_file="dist/zashikura-${version}-1.${{ matrix.rpm_arch }}.rpm"
+          dpkg-deb --field "$deb_file" Architecture
+          dpkg-deb --contents "$deb_file" | grep -F "usr/bin/zashikura"
+          test -s "$rpm_file"
+          file "$rpm_file"
+          tar -tzf "dist/${archive_dir}.tar.gz" | grep -F "$archive_dir/zashikura"
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
@@ -116,6 +132,7 @@ jobs:
 
   publish:
     name: Publish GitHub Release
+    if: github.event_name == 'push'
     runs-on: ubuntu-22.04
     needs: build
     steps:
