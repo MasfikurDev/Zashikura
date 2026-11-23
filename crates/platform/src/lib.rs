@@ -291,7 +291,11 @@ fn read_number(path: &Path) -> Option<u64> {
 
 #[cfg(target_os = "linux")]
 fn read_signed_number(path: &Path) -> Option<i64> {
-    read_attribute(path)?.parse().ok()
+    parse_signed_number(&read_attribute(path)?)
+}
+
+fn parse_signed_number(value: &str) -> Option<i64> {
+    value.trim().parse().ok()
 }
 
 #[cfg(target_os = "linux")]
@@ -348,7 +352,8 @@ mod tests {
     }
     #[test]
     fn signed_thermal_values_preserve_negative_temperatures() {
-        assert_eq!("-1250".parse::<i64>().ok(), Some(-1250));
+        assert_eq!(super::parse_signed_number(" -1250\\n"), Some(-1250));
+        assert_eq!(super::parse_signed_number("invalid"), None);
     }
 
     #[cfg(target_os = "linux")]
