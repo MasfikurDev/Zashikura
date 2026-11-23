@@ -59,6 +59,10 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Require tracked lockfile for stable releases
+        if: (github.event_name == 'workflow_dispatch' && !inputs.prerelease) || (github.event_name == 'push' && !contains(github.ref_name, '-'))
+        run: git ls-files --error-unmatch Cargo.lock
+
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
         with:
