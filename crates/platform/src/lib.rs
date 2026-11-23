@@ -352,7 +352,7 @@ mod tests {
     }
     #[test]
     fn signed_thermal_values_preserve_negative_temperatures() {
-        assert_eq!(super::parse_signed_number(" -1250\\n"), Some(-1250));
+        assert_eq!(super::parse_signed_number(" -1250\n"), Some(-1250));
         assert_eq!(super::parse_signed_number("invalid"), None);
     }
 
