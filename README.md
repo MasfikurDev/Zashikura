@@ -28,6 +28,15 @@ Future interfaces should depend on the application layer rather than implement t
 
 See [the architecture overview](docs/architecture/overview.md) and [extension points](docs/architecture/extension-points.md) before adding a new interface or integration.
 
+## AI-assisted development
+
+AI coding tools are supported through explicit repository guidance and documented architecture boundaries. AI assistance is not a runtime dependency, and no model or cloud service is required.
+
+- [Agent instructions](AGENTS.md) define repository-wide engineering, privacy, and safety requirements.
+- [AI-assisted development guide](docs/ai-assisted-development.md) explains how tools should navigate and extend the project.
+
+AI-facing integrations such as MCP will be implemented as separate interfaces over the application API. They will not receive privileged or unrestricted system access by default.
+
 ## Development status
 
 The workspace foundation is being established. The current CLI is intentionally small. System discovery, persistence, and maintenance capabilities will be added behind the boundaries above as their behavior and safety requirements are defined.
