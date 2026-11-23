@@ -27,7 +27,7 @@ The beta detector considers Conventional Commit subjects and changed paths:
 | Formatting-only changes | No |
 | Release workflow changes | No |
 
-Commit types `docs`, `test`, `ci`, `style`, and `chore` are excluded. Product changes are limited to workspace manifests, Rust source/build files, and the Rust toolchain/build configuration. Mixed commits still qualify when they include a product file.
+Commit types `docs`, `test`, `ci`, and `style` are excluded, as are `chore(release)` version-only commits. Dependency and packaging changes to Cargo manifests or the lockfile still qualify even when committed with a `chore` prefix. Product changes are limited to workspace manifests, Rust source/build files, and the Rust toolchain/build configuration. Mixed commits still qualify when they include a product file.
 
 Version calculation examines all qualifying commits since the latest stable tag:
 - `BREAKING CHANGE:` or a breaking Conventional Commit header increments the major version.
