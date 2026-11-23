@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{error::ErrorKind, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -10,7 +10,7 @@ use clap::{Parser, Subcommand};
 )]
 struct Cli {
     #[command(subcommand)]
-    command: Option<Command>,
+    command: Command,
 }
 
 #[derive(Debug, Subcommand)]
@@ -23,28 +23,34 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Command::About) => {
+        Command::About => {
             println!("Zashikura {}", env!("CARGO_PKG_VERSION"));
             println!("A local-first tool for understanding and looking after your computer.");
         }
-        None => unreachable!("Clap requires a command or displays help"),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::Cli;
-    use clap::Parser;
+    use clap::{error::ErrorKind, Parser};
 
     #[test]
-    fn help_flag_is_accepted() {
-        let result = Cli::try_parse_from(["zashikura", "--help"]);
-        assert!(result.is_err());
+    fn help_flag_displays_help() {
+        let error = Cli::try_parse_from(["zashikura", "--help"])
+            .expect_err("the help flag should exit parsing");
+        assert_eq!(error.kind(), ErrorKind::DisplayHelp);
+    }
+
+    #[test]
+    fn missing_command_displays_help() {
+        let error = Cli::try_parse_from(["zashikura"])
+            .expect_err("a command is required");
+        assert_eq!(error.kind(), ErrorKind::DisplayHelp);
     }
 
     #[test]
     fn about_command_is_accepted() {
-        let result = Cli::try_parse_from(["zashikura", "about"]);
-        assert!(result.is_ok());
+        assert!(Cli::try_parse_from(["zashikura", "about"]).is_ok());
     }
 }
