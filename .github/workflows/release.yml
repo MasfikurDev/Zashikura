@@ -68,7 +68,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Set generated pre-release version
-        if: github.event_name == 'workflow_call' && inputs.prerelease
+        if: inputs.prerelease
         shell: bash
         run: |
           version="${RELEASE_VERSION#v}"
@@ -218,7 +218,7 @@ jobs:
           if [[ "$IS_PRERELEASE" == "true" ]]; then
             args+=(--prerelease)
           fi
-          if [[ "$GITHUB_EVENT_NAME" != "push" ]]; then
+          if [[ "$GITHUB_REF" != refs/tags/v* ]]; then
             args+=(--target "$GITHUB_SHA")
           else
             args+=(--verify-tag)
