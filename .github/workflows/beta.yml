@@ -66,10 +66,11 @@ jobs:
             done <<< "$files"
 
             if [[ "$has_product_file" == true ]]; then
-              if [[ "$subject" =~ ^(test|ci|style)(\([^)]*\))?: ]] ||
-                 [[ "$subject" =~ ^chore\(release\): ]]; then
-                continue
-              fi
+              case "$subject" in
+                test:*|test\(*:*|ci:*|ci\(*:*|style:*|style\(*:*|chore\(release\):*)
+                  continue
+                  ;;
+              esac
               has_new_release_change=true
               break
             fi
@@ -97,14 +98,15 @@ jobs:
               esac
             done <<< "$files"
             [[ "$has_product_file" == true ]] || continue
-            if [[ "$subject" =~ ^(test|ci|style)(\([^)]*\))?: ]] ||
-               [[ "$subject" =~ ^chore\(release\): ]]; then
-              continue
-            fi
-            if [[ "$subject" =~ !: ]] || grep -q '^BREAKING CHANGE:' <<< "$body"; then
+            case "$subject" in
+              test:*|test\(*:*|ci:*|ci\(*:*|style:*|style\(*:*|chore\(release\):*)
+                continue
+                ;;
+            esac
+            if [[ "$subject" == *'!:'* ]] || grep -q '^BREAKING CHANGE:' <<< "$body"; then
               bump=major
               break
-            elif [[ "$subject" =~ ^feat(\([^)]*\))?: ]]; then
+            elif [[ "$subject" == feat:* || "$subject" == feat\(*:* ]]; then
               [[ "$bump" == major ]] || bump=minor
             fi
           done < <(git rev-list "$stable_range")
