@@ -170,7 +170,7 @@ jobs:
           EOF
 
           rpm_file="dist/zashikura-${version}-${{ matrix.rpm_arch }}.rpm"
-          cargo generate-rpm -p zashikura-cli \
+          cargo generate-rpm -p crates/cli \
             --metadata-overwrite="dist/rpm-metadata.toml" \
             -o "$rpm_file"
           rm dist/rpm-metadata.toml
