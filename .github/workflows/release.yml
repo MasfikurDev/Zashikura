@@ -35,6 +35,8 @@ jobs:
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
 
       - name: Cache Rust build artifacts
         uses: Swatinem/rust-cache@v2
@@ -59,6 +61,12 @@ jobs:
             echo "::error::Expected $expected runner, got $actual"
             exit 1
           fi
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: Test workspace
         run: cargo test --workspace
@@ -86,10 +94,10 @@ jobs:
           mkdir -p dist
           strip --strip-unneeded target/release/zashikura
 
-          cargo deb --no-build --package zashikura-cli \
+          cargo deb --no-build -p zashikura-cli \
             --output "dist/zashikura_${version}_${{ matrix.deb_arch }}.deb"
 
-          cargo generate-rpm --package zashikura-cli \
+          cargo generate-rpm -p zashikura-cli \
             --output "dist/zashikura-${version}-1.${{ matrix.rpm_arch }}.rpm"
 
           archive_dir="zashikura-${version}-linux-${{ matrix.arch }}"
