@@ -159,7 +159,10 @@ mod tests {
     #[test]
     fn missing_command_displays_help() {
         let error = Cli::try_parse_from(["zashikura"]).expect_err("a command is required");
-        assert_eq!(error.kind(), ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand);
+        assert_eq!(
+            error.kind(),
+            ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+        );
     }
 
     #[test]
