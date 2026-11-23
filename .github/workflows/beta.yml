@@ -64,7 +64,7 @@ jobs:
             done <<< "$files"
 
             if [[ "$has_product_file" == true ]]; then
-              if [[ "$subject" =~ ^(docs|test|ci|style)(\\([^)]*\\))?: ]] ||
+              if [[ "$subject" =~ ^(test|ci|style)(\\([^)]*\\))?: ]] ||
                  [[ "$subject" =~ ^chore\\(release\\): ]]; then
                 continue
               fi
@@ -94,7 +94,7 @@ jobs:
               esac
             done <<< "$files"
             [[ "$has_product_file" == true ]] || continue
-            if [[ "$subject" =~ ^(docs|test|ci|style)(\([^)]*\))?: ]] ||
+            if [[ "$subject" =~ ^(test|ci|style)(\([^)]*\))?: ]] ||
                [[ "$subject" =~ ^chore\(release\): ]]; then
               continue
             fi
