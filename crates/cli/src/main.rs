@@ -71,7 +71,9 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
                 print_system_snapshot(&snapshot);
             }
         }
-        Command::Inspect { command: InspectCommand::Machine } => {
+        Command::Inspect {
+            command: InspectCommand::Machine,
+        } => {
             let snapshot = InspectMachine::new(SysinfoMachineInspector).execute();
             print_machine_snapshot(&snapshot);
         }
@@ -214,7 +216,12 @@ mod tests {
     #[test]
     fn machine_inspection_command_is_accepted() {
         let cli = Cli::try_parse_from(["zashikura", "inspect", "machine"]).unwrap();
-        assert!(matches!(cli.command, Command::Inspect { command: InspectCommand::Machine }));
+        assert!(matches!(
+            cli.command,
+            Command::Inspect {
+                command: InspectCommand::Machine
+            }
+        ));
     }
 
     #[test]
