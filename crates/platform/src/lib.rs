@@ -291,6 +291,17 @@ mod tests {
         assert_eq!(non_empty(" value \n").as_deref(), Some("value"));
     }
     #[test]
+    fn legacy_system_inspection_remains_available() {
+        use super::SysinfoSystemInspector;
+        use zashikura_application::SystemInspector;
+
+        let snapshot = SysinfoSystemInspector.inspect_system().unwrap();
+        assert!(snapshot.logical_cpu_count > 0);
+        assert!(snapshot.memory.total_bytes > 0);
+        assert!(snapshot.memory.used_bytes <= snapshot.memory.total_bytes);
+    }
+
+    #[test]
     fn independent_categories_can_be_collected() {
         let inspector = SysinfoMachineInspector;
         assert!(matches!(
