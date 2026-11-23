@@ -1,4 +1,4 @@
-use clap::{error::ErrorKind, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[command(
