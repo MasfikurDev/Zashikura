@@ -226,12 +226,12 @@ jobs:
           version="${RELEASE_VERSION#v}"
           standalone="zashikura-${version}-linux-${{ matrix.arch }}-musl"
           install -m 0755 "$musl_binary" "dist/$standalone"
-          archive_dir="$standalone"
-          mkdir -p "dist/$archive_dir"
-          install -m 0755 "$musl_binary" "dist/$archive_dir/zashikura"
-          install -m 0644 README.md LICENSE "dist/$archive_dir/"
-          tar -czf "dist/${archive_dir}.tar.gz" -C dist "$archive_dir"
-          rm -rf "dist/$archive_dir"
+          archive_dir="$RUNNER_TEMP/$standalone"
+          mkdir -p "$archive_dir"
+          install -m 0755 "$musl_binary" "$archive_dir/zashikura"
+          install -m 0644 README.md LICENSE "$archive_dir/"
+          tar -czf "dist/${standalone}.tar.gz" -C "$RUNNER_TEMP" "$standalone"
+          rm -rf "$archive_dir"
 
       - name: Verify release directory contains files only
         run: |
