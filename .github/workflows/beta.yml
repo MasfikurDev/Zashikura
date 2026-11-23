@@ -39,7 +39,7 @@ jobs:
             stable_range="$stable_tag..HEAD"
           else
             stable_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
-            stable_range="$(git rev-list --max-parents=0 HEAD | tail -n 1)..HEAD"
+            stable_range="HEAD"
           fi
 
           latest_tag="$(git describe --tags --abbrev=0 HEAD 2>/dev/null || true)"
@@ -53,7 +53,7 @@ jobs:
           while IFS= read -r commit; do
             [[ -z "$commit" ]] && continue
             subject="$(git show -s --format=%s "$commit")"
-            files="$(git diff-tree --no-commit-id --name-only -r "$commit")"
+            files="$(git diff-tree --root --no-commit-id --name-only -r "$commit")"
             has_product_file=false
             while IFS= read -r file; do
               case "$file" in
@@ -84,7 +84,7 @@ jobs:
             [[ -z "$commit" ]] && continue
             subject="$(git show -s --format=%s "$commit")"
             body="$(git show -s --format=%b "$commit")"
-            files="$(git diff-tree --no-commit-id --name-only -r "$commit")"
+            files="$(git diff-tree --root --no-commit-id --name-only -r "$commit")"
             has_product_file=false
             while IFS= read -r file; do
               case "$file" in
