@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 use std::{fs, path::Path};
-use sysinfo::{Disks, Networks, System};
+use sysinfo::{CpuRefreshKind, Disks, Networks, System};
 use zashikura_application::{MachineInspector, SystemInspectionError, SystemInspector};
 use zashikura_core::{
     FirmwareInfo, GraphicsDevice, Inspection, LogicalProcessor, MachineIdentity, MemoryInfo,
@@ -22,8 +22,9 @@ impl SystemInspector for SysinfoSystemInspector {
 
 impl SystemInspector for SysinfoMachineInspector {
     fn inspect_system(&self) -> Result<SystemSnapshot, SystemInspectionError> {
-        let mut system = System::new_all();
-        system.refresh_all();
+        let mut system = System::new();
+        system.refresh_cpu_list(CpuRefreshKind::everything());
+        system.refresh_memory();
         Ok(SystemSnapshot::new(
             System::host_name(),
             System::name(),
@@ -46,8 +47,8 @@ impl MachineInspector for SysinfoMachineInspector {
         })
     }
     fn inspect_processor(&self) -> Inspection<ProcessorInfo> {
-        let mut system = System::new_all();
-        system.refresh_all();
+        let mut system = System::new();
+        system.refresh_cpu_list(CpuRefreshKind::everything());
         let cpus = system.cpus();
         let Some(first) = cpus.first() else {
             return Inspection::unavailable();
@@ -67,7 +68,7 @@ impl MachineInspector for SysinfoMachineInspector {
         })
     }
     fn inspect_memory(&self) -> Inspection<MemoryInfo> {
-        let mut system = System::new_all();
+        let mut system = System::new();
         system.refresh_memory();
         let total = system.total_memory();
         if total == 0 {
