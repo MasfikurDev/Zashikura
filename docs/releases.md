@@ -29,7 +29,7 @@ The beta detector considers Conventional Commit subjects and changed paths:
 
 Test-, CI-, and style-only commits are excluded, as are `chore(release)` version-only commits. A documentation commit that also changes product code still qualifies. Dependency and packaging changes to Cargo manifests or the lockfile qualify even when committed with a `chore` prefix. Product changes are limited to workspace manifests, Rust source/build files, and the Rust toolchain/build configuration. Mixed commits still qualify when they include a product file.
 
-Version calculation examines all qualifying commits since the latest stable tag:
+When no stable tag exists yet, the first beta uses the workspace version as its base (currently `0.1.0-beta.1`). Until the first stable release, subsequent qualifying updates increment the beta sequence for that same base version. After a stable tag exists, version calculation examines qualifying commits since that stable tag:
 - `BREAKING CHANGE:` or a breaking Conventional Commit header increments the major version.
 - `feat:` increments the minor version.
 - Other qualifying product changes increment the patch version.
