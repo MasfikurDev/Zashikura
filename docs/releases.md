@@ -1,51 +1,80 @@
 # Release process
 
+## Release channels
+
+Zashikura uses one Linux packaging pipeline for beta and stable releases.
+
+- **Beta:** Automatically published from qualifying changes merged into `main`. Intended for early public testing and may change frequently.
+- **Stable:** Published only through an explicit maintainer-triggered release workflow after the version has been updated and reviewed.
+- **Alpha / release candidate:** Supported as manually dispatched pre-releases when a version containing `-alpha.` or `-rc.` is supplied.
+
+A pre-release is a normal downloadable GitHub Release marked as a pre-release. It is not a separate update service.
+
+## Automatic beta release policy
+
+Every push to `main` is inspected, but a release is created only when new product changes are present since the most recent tag.
+
+The beta detector considers Conventional Commit subjects and changed paths:
+
+| Change | Beta release |
+| --- | --- |
+| `feat:`, `fix:`, `perf:`, `refactor:`, or other product-code changes | Yes |
+| Workspace/package manifests or lockfile changes | Yes |
+| Documentation-only changes | No |
+| README, typo, or Markdown-only changes | No |
+| Tests-only changes | No |
+| CI workflow-only changes | No |
+| Formatting-only changes | No |
+| Release workflow changes | No |
+
+Commit types `docs`, `test`, `ci`, `style`, and `chore` are excluded. Product changes are limited to workspace manifests, Rust source/build files, and the Rust toolchain/build configuration. Mixed commits still qualify when they include a product file.
+
+Version calculation examines all qualifying commits since the latest stable tag:
+- `BREAKING CHANGE:` or a breaking Conventional Commit header increments the major version.
+- `feat:` increments the minor version.
+- Other qualifying product changes increment the patch version.
+
+Each beta is tagged as `vMAJOR.MINOR.PATCH-beta.N`. The beta sequence increments for each qualifying update to that target version. Documentation-only and other excluded commits do not consume beta versions. A beta is built from the exact `main` commit that triggered it.
+
+The workflow is serialized to prevent concurrent beta publishers from selecting the same version. The release pipeline must pass tests, binary smoke tests, package validation, and artifact checks before publishing. Failed builds do not create a release.
+
+## Stable release
+
+1. Update the workspace version in the root `Cargo.toml` and commit the intended release version to `main`.
+2. Ensure the repository tracks a current `Cargo.lock`. The repository did not track one when this pipeline was introduced; add it before the first stable release.
+3. Confirm CI is green and manually run the **Release** workflow from `main`.
+4. Enter the exact workspace version without a leading `v` (for example, `0.1.0`). The stable workflow validates that it matches the CLI package version.
+5. The workflow builds and verifies all artifacts, then creates the stable GitHub Release. It does not publish if any build or validation job fails.
+
+Stable publication is intentionally an explicit maintainer action. Beta publication is automatic.
+
 ## Supported release artifacts
 
-Every release builds Linux packages on native Linux runners for both supported architectures:
+Every release currently builds Linux packages on native Linux runners for both supported architectures:
 
 | Architecture | Debian package | RPM package | Portable archive |
 | --- | --- | --- | --- |
 | x86_64 | `.deb` (amd64) | `.rpm` (x86_64) | `.tar.gz` |
 | aarch64 | `.deb` (arm64) | `.rpm` (aarch64) | `.tar.gz` |
 
-Builds run on Ubuntu 22.04 x86_64 and ARM64 runners. The GNU/Linux binaries use the system glibc and are intended for glibc 2.35 or newer. The packages install the executable at `/usr/bin/zashikura`. The portable archive contains the executable, README, and license.
+Builds run on Ubuntu 22.04 x86_64 and ARM64 runners. GNU/Linux binaries use the system glibc and require glibc 2.35 or newer. Packages install the executable at `/usr/bin/zashikura`. Portable archives contain the executable, README, and license.
 
-Each published release also includes `SHA256SUMS`. Verify downloaded artifacts from the directory containing the downloaded files:
+Each published release includes `SHA256SUMS`. Verify downloaded artifacts from the directory containing the downloaded files:
 
 ```sh
 sha256sum -c SHA256SUMS
 ```
 
-## Creating a release
+## Pipeline and safeguards
 
-1. Ensure the intended changes are merged into `main` and CI is green.
-2. Update the workspace version in the root `Cargo.toml`. All workspace crates inherit this version.
-3. The repository does not yet track a `Cargo.lock`. Generate and commit it before the first stable release; keep it updated when dependency resolution changes.
-4. Merge the version and lockfile changes into `main`.
-5. Create and push a matching version tag from the release commit:
+1. Detect qualifying changes and calculate a version for automatic beta releases, or validate the manually requested stable version.
+2. Run formatting, Clippy, and workspace tests on native x86_64 and ARM64 Linux runners.
+3. Build the CLI and smoke-test version, help, basic inspection, and machine inspection commands.
+4. Build Debian and RPM packages plus a portable archive for each architecture; verify package architecture and contents.
+5. Generate SHA-256 checksums and publish the GitHub Release only after all builds succeed.
 
-   ```sh
-   git tag -a v0.1.0 -m "Zashikura v0.1.0"
-   git push origin v0.1.0
-   ```
-
-The tag must exactly match the CLI package version. The workflow rejects mismatches and verifies that each runner is building the expected CPU architecture.
+Pull requests and ordinary branch pushes never publish directly. Only the beta workflow on `main`, a manually dispatched stable release, or an explicitly pushed version tag can publish. Build jobs have read-only repository permissions; the publishing job alone receives write permission. The pipeline does not publish to external package repositories or modify the user's machine.
 
 ## Validate packaging without publishing
 
-After this workflow has been merged, use GitHub Actions' **Release** workflow with the `workflow_dispatch` event and enter the workspace version (for example, `0.1.0`). It builds and uploads test artifacts for both architectures but does not create a GitHub Release.
-
-## Release pipeline
-
-A version-tag push runs the following steps:
-
-1. Checks out the tagged source and installs stable Rust.
-2. Runs formatting, Clippy, and workspace tests on native x86_64 and ARM64 Linux runners.
-3. Builds the CLI and smoke-tests its version, help, basic inspection, and machine inspection commands.
-4. Builds Debian and RPM packages plus a portable tarball for each architecture, then checks package and archive contents.
-5. Collects all artifacts, generates SHA-256 checksums, and publishes a GitHub Release with generated release notes.
-
-A tag containing a hyphen (for example, `v0.2.0-rc.1`) is published as a prerelease. Other matching tags are published as stable releases.
-
-Pull requests, ordinary branch pushes, and manual packaging validations never publish releases. The release workflow does not publish to external package repositories or modify the user's machine.
+Use the **Release** workflow's manual dispatch only for a real stable release. For packaging experiments, use a pull request or branch CI; do not create a stable tag merely to test packaging.
