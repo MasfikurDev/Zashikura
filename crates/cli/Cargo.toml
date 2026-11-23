@@ -5,6 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "A local-first Linux system inspection and management CLI."
 
 [[bin]]
 name = "zashikura"
@@ -17,3 +18,23 @@ serde_json = { workspace = true }
 zashikura-application = { path = "../application" }
 zashikura-core = { path = "../core" }
 zashikura-platform = { path = "../platform" }
+
+[package.metadata.deb]
+maintainer = "Zashikura maintainers"
+copyright = "2026, Zashikura contributors"
+license-file = ["../../LICENSE", "0"]
+depends = "$auto"
+section = "utils"
+priority = "optional"
+assets = [
+    ["target/release/zashikura", "usr/bin/", "755"],
+    ["../../README.md", "usr/share/doc/zashikura/README.md", "644"],
+    ["../../LICENSE", "usr/share/doc/zashikura/copyright", "644"],
+]
+
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/zashikura", dest = "/usr/bin/zashikura", mode = "755" },
+    { source = "README.md", dest = "/usr/share/doc/zashikura/README.md", mode = "644", doc = true },
+    { source = "LICENSE", dest = "/usr/share/licenses/zashikura/LICENSE", mode = "644", doc = true },
+]
