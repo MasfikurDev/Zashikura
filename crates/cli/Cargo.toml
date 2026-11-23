@@ -20,6 +20,7 @@ zashikura-core = { path = "../core" }
 zashikura-platform = { path = "../platform" }
 
 [package.metadata.deb]
+name = "zashikura"
 maintainer = "Zashikura maintainers"
 copyright = "2026, Zashikura contributors"
 license-file = ["../../LICENSE", "0"]
@@ -33,6 +34,7 @@ assets = [
 ]
 
 [package.metadata.generate-rpm]
+name = "zashikura"
 assets = [
     { source = "target/release/zashikura", dest = "/usr/bin/zashikura", mode = "755" },
     { source = "README.md", dest = "/usr/share/doc/zashikura/README.md", mode = "644", doc = true },
