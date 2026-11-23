@@ -1,0 +1,141 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Linux ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+            deb_arch: amd64
+            rpm_arch: x86_64
+          - arch: aarch64
+            runner: ubuntu-22.04-arm
+            deb_arch: arm64
+            rpm_arch: aarch64
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Verify release tag and runner architecture
+        shell: bash
+        run: |
+          version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "zashikura-cli") | .version')"
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [[ "$tag_version" != "$version" ]]; then
+            echo "::error::Tag version $tag_version does not match workspace version $version"
+            exit 1
+          fi
+
+          case "${{ matrix.arch }}" in
+            x86_64) expected="x86_64" ;;
+            aarch64) expected="aarch64" ;;
+            *) echo "::error::Unsupported architecture"; exit 1 ;;
+          esac
+          actual="$(uname -m)"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::Expected $expected runner, got $actual"
+            exit 1
+          fi
+
+      - name: Test workspace
+        run: cargo test --workspace
+
+      - name: Build release binary
+        run: cargo build --release --package zashikura-cli
+
+      - name: Smoke-test release binary
+        run: |
+          ./target/release/zashikura --version
+          ./target/release/zashikura --help
+          ./target/release/zashikura about
+          ./target/release/zashikura inspect system --json
+          ./target/release/zashikura inspect machine
+
+      - name: Install Linux package builders
+        run: |
+          cargo install cargo-deb --version 3.8.0 --locked
+          cargo install cargo-generate-rpm --version 0.21.1 --locked
+
+      - name: Build Debian, RPM, and portable archive
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          strip --strip-unneeded target/release/zashikura
+
+          cargo deb --no-build --package zashikura-cli \
+            --output "dist/zashikura_${version}_${{ matrix.deb_arch }}.deb"
+
+          cargo generate-rpm --package zashikura-cli \
+            --output "dist/zashikura-${version}-1.${{ matrix.rpm_arch }}.rpm"
+
+          archive_dir="zashikura-${version}-linux-${{ matrix.arch }}"
+          mkdir -p "dist/$archive_dir"
+          install -m 0755 target/release/zashikura "dist/$archive_dir/zashikura"
+          install -m 0644 README.md LICENSE "dist/$archive_dir/"
+          tar -czf "dist/${archive_dir}.tar.gz" -C dist "$archive_dir"
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub Release
+    runs-on: ubuntu-22.04
+    needs: build
+    steps:
+      - name: Download architecture artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-linux-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate SHA-256 checksums
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          args=(
+            "$GITHUB_REF_NAME"
+            dist/*
+            --title "Zashikura $GITHUB_REF_NAME"
+            --generate-notes
+            --verify-tag
+          )
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            args+=(--prerelease)
+          fi
+          gh release create "${args[@]}"
