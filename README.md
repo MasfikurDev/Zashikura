@@ -12,6 +12,51 @@ The project is CLI-first. The command-line interface is the first way to use Zas
 - **Useful, not intrusive.** Zashikura should help people understand and maintain their computers without aggressive optimization or unnecessary complexity.
 - **Cross-platform by design, Linux-first in development.** Keep shared logic and interfaces portable, while targeting Linux for active implementation and validation. Do not develop or test features on Windows or macOS for now.
 
+## Install
+
+Download the matching package or portable archive from [GitHub Releases](https://github.com/MasfikurDev/Zashikura/releases). Qualifying changes merged into `main` produce automatic beta pre-releases; stable releases are published after an explicit maintainer release action. See [the release process](docs/releases.md).
+
+| Linux architecture | Debian / Ubuntu | Fedora / RPM-based | GNU archive | Static standalone binary |
+| --- | --- | --- | --- | --- |
+| x86_64 | `zashikura_VERSION_amd64.deb` | `zashikura-VERSION-x86_64.rpm` | `zashikura-VERSION-linux-x86_64.tar.gz` | `zashikura-VERSION-linux-x86_64-musl` |
+| ARM64 | `zashikura_VERSION_arm64.deb` | `zashikura-VERSION-aarch64.rpm` | `zashikura-VERSION-linux-aarch64.tar.gz` | `zashikura-VERSION-linux-aarch64-musl` |
+
+Install a Debian package:
+
+```sh
+sudo apt install ./zashikura_VERSION_amd64.deb
+```
+
+Install an RPM package:
+
+```sh
+sudo dnf install ./zashikura-VERSION-1.x86_64.rpm
+```
+
+Install the portable archive:
+
+```sh
+tar -xzf zashikura-VERSION-linux-x86_64.tar.gz
+sudo install -m 0755 zashikura-VERSION-linux-x86_64/zashikura /usr/local/bin/zashikura
+```
+
+Run a static standalone binary directly (no installation or Rust toolchain required):
+
+```sh
+chmod +x zashikura-VERSION-linux-x86_64-musl
+./zashikura-VERSION-linux-x86_64-musl inspect machine
+```
+
+The matching `-musl.tar.gz` archive includes the binary, README, and license.
+
+The static standalone binaries and their `-musl.tar.gz` archives do not require glibc or a Rust toolchain. They are intended to run directly on supported Linux architectures. The GNU packages and GNU archives require glibc 2.35 or newer. Replace `VERSION` and the architecture with the downloaded release's values. Verify downloaded files using the release's `SHA256SUMS` file before running or installing:
+
+```sh
+sha256sum -c SHA256SUMS
+```
+
+See [the release process](docs/releases.md) for supported artifacts and maintainer instructions.
+
 ## Architecture
 
 The Rust workspace has explicit boundaries:
@@ -44,7 +89,7 @@ The read-only machine inspection reports identity, processor, memory, storage, n
 
 Install the stable Rust toolchain with the rustfmt and clippy components. Linux is the project's active development environment. Keep changes portable where practical, but do not use Windows or macOS as development or validation targets at this stage.
 
-~~~
+```
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
@@ -52,7 +97,7 @@ cargo run -p zashikura-cli -- --help
 cargo run -p zashikura-cli -- inspect system
 cargo run -p zashikura-cli -- inspect system --json
 cargo run -p zashikura-cli -- inspect machine
-~~~
+```
 
 ## Contributing
 

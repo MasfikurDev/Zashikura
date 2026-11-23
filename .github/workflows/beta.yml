@@ -1,0 +1,142 @@
+name: Automatic beta release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automatic-beta-release
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Detect release-worthy changes
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      publish: ${{ steps.plan.outputs.publish }}
+    steps:
+      - name: Check out complete history and tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Classify changes and calculate beta version
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+
+          stable_tag="$(git tag --merged HEAD --list 'v[0-9]*' | grep -Ev -- '-(alpha|beta|rc)' | sort -V | tail -n 1 || true)"
+          if [[ -n "$stable_tag" ]]; then
+            stable_version="${stable_tag#v}"
+            stable_range="$stable_tag..HEAD"
+          else
+            stable_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
+            stable_range=""
+          fi
+
+          latest_tag="$(git describe --tags --abbrev=0 HEAD 2>/dev/null || true)"
+          if [[ -n "$latest_tag" ]]; then
+            new_range="$latest_tag..HEAD"
+          else
+            new_range="HEAD"
+          fi
+
+          has_new_release_change=false
+          while IFS= read -r commit; do
+            [[ -z "$commit" ]] && continue
+            subject="$(git show -s --format=%s "$commit")"
+            files="$(git diff-tree --root --no-commit-id --name-only -r "$commit")"
+            has_product_file=false
+            while IFS= read -r file; do
+              case "$file" in
+                Cargo.toml|Cargo.lock|crates/*/Cargo.toml|crates/*/src/*|crates/*/build.rs|build.rs|rust-toolchain.toml|.cargo/config.toml)
+                  has_product_file=true
+                  ;;
+              esac
+            done <<< "$files"
+
+            if [[ "$has_product_file" == true ]]; then
+              case "$subject" in
+                test:*|test\(*:*|ci:*|ci\(*:*|style:*|style\(*:*|chore\(release\):*)
+                  continue
+                  ;;
+              esac
+              has_new_release_change=true
+              break
+            fi
+          done < <(git rev-list "$new_range")
+
+          if [[ "$has_new_release_change" != true ]]; then
+            echo "No release-worthy product changes since the previous release tag."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          bump=patch
+          if [[ -n "$stable_tag" ]]; then
+          while IFS= read -r commit; do
+            [[ -z "$commit" ]] && continue
+            subject="$(git show -s --format=%s "$commit")"
+            body="$(git show -s --format=%b "$commit")"
+            files="$(git diff-tree --root --no-commit-id --name-only -r "$commit")"
+            has_product_file=false
+            while IFS= read -r file; do
+              case "$file" in
+                Cargo.toml|Cargo.lock|crates/*/Cargo.toml|crates/*/src/*|crates/*/build.rs|build.rs|rust-toolchain.toml|.cargo/config.toml)
+                  has_product_file=true
+                  ;;
+              esac
+            done <<< "$files"
+            [[ "$has_product_file" == true ]] || continue
+            case "$subject" in
+              test:*|test\(*:*|ci:*|ci\(*:*|style:*|style\(*:*|chore\(release\):*)
+                continue
+                ;;
+            esac
+            if [[ "$subject" == *'!:'* ]] || grep -q '^BREAKING CHANGE:' <<< "$body"; then
+              bump=major
+              break
+            elif [[ "$subject" == feat:* || "$subject" == feat\(*:* ]]; then
+              [[ "$bump" == major ]] || bump=minor
+            fi
+          done < <(git rev-list "$stable_range")
+          fi
+
+          IFS=. read -r major minor patch <<< "$stable_version"
+          if [[ -n "$stable_tag" ]]; then
+            case "$bump" in
+              major) major=$((major + 1)); minor=0; patch=0 ;;
+              minor) minor=$((minor + 1)); patch=0 ;;
+              patch) patch=$((patch + 1)) ;;
+            esac
+          fi
+          target_version="$major.$minor.$patch"
+
+          existing="$(git tag --merged HEAD --list "v$target_version-beta.*" | sed -E 's/.*-beta\.([0-9]+)$/\1/' | sort -n | tail -n 1)"
+          next_beta=$((${existing:-0} + 1))
+          version="$target_version-beta.$next_beta"
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+          echo "Release-worthy changes detected; preparing $version"
+
+  publish:
+    name: Build and publish beta
+    needs: plan
+    if: needs.plan.outputs.publish == 'true'
+    uses: ./.github/workflows/release.yml
+    with:
+      version: ${{ needs.plan.outputs.version }}
+      prerelease: true
+    permissions:
+      contents: write

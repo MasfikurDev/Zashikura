@@ -1,0 +1,289 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version from the workspace Cargo.toml (for example 0.1.0)"
+        required: true
+        type: string
+      prerelease:
+        description: "Mark this manually dispatched release as a pre-release"
+        required: false
+        default: false
+        type: boolean
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to build and publish"
+        required: true
+        type: string
+      prerelease:
+        description: "Publish as a pre-release"
+        required: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.version || github.event.inputs.version || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Linux ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    env:
+      RELEASE_VERSION: ${{ inputs.version || github.event.inputs.version || github.ref_name }}
+      IS_PRERELEASE: ${{ inputs.prerelease || (github.event_name == 'push' && contains(github.ref_name, '-')) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+            deb_arch: amd64
+            rpm_arch: x86_64
+          - arch: aarch64
+            runner: ubuntu-22.04-arm
+            deb_arch: arm64
+            rpm_arch: aarch64
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Require tracked lockfile for stable releases
+        if: (github.event_name == 'workflow_dispatch' && !inputs.prerelease) || (github.event_name == 'push' && !contains(github.ref_name, '-'))
+        run: git ls-files --error-unmatch Cargo.lock
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Set generated pre-release version
+        if: inputs.prerelease
+        shell: bash
+        run: |
+          version="${RELEASE_VERSION#v}"
+          VERSION="$version" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import re
+
+          path = Path("Cargo.toml")
+          content = path.read_text()
+          content, count = re.subn(
+              r'(?m)^version = "[^"]+"$',
+              f'version = "{os.environ["VERSION"]}"',
+              content,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit("Could not update the workspace version")
+          path.write_text(content)
+          PY
+
+      - name: Verify release version and runner architecture
+        shell: bash
+        run: |
+          version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "zashikura-cli") | .version')"
+          requested="${RELEASE_VERSION#v}"
+          if [[ "$requested" != "$version" ]]; then
+            echo "::error::Requested version $requested does not match workspace version $version"
+            exit 1
+          fi
+
+          case "${{ matrix.arch }}" in
+            x86_64) expected="x86_64" ;;
+            aarch64) expected="aarch64" ;;
+            *) echo "::error::Unsupported architecture"; exit 1 ;;
+          esac
+          actual="$(uname -m)"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::Expected $expected runner, got $actual"
+            exit 1
+          fi
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test workspace
+        run: cargo test --workspace
+
+      - name: Build release binary
+        run: cargo build --release --package zashikura-cli
+
+      - name: Smoke-test release binary
+        run: |
+          ./target/release/zashikura --version
+          ./target/release/zashikura --help
+          ./target/release/zashikura about
+          ./target/release/zashikura inspect system --json
+          ./target/release/zashikura inspect machine
+
+      - name: Install package inspection tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y dpkg-dev liblzma-dev rpm binutils
+
+      - name: Install musl cross builder
+        run: cargo install cross --version 0.2.5 --locked
+
+      - name: Install Linux package builders
+        run: |
+          cargo install cargo-deb --version 3.8.0 --locked
+          cargo install cargo-generate-rpm --version 0.21.1 --locked
+
+      - name: Build Debian, RPM, and portable archive
+        shell: bash
+        run: |
+          version="${RELEASE_VERSION#v}"
+          mkdir -p dist
+          strip --strip-unneeded target/release/zashikura
+
+          cargo deb --no-build -p zashikura-cli \
+            --output "dist/zashikura_${version}_${{ matrix.deb_arch }}.deb"
+
+          rpm_version="${version%%-*}"
+          rpm_release="1"
+          if [[ "$version" == *-* ]]; then
+            rpm_release="0.${version#*-}"
+          fi
+          cat > dist/rpm-metadata.toml <<EOF
+          [package.metadata.generate-rpm]
+          version = "$rpm_version"
+          release = "$rpm_release"
+          EOF
+
+          rpm_file="dist/zashikura-${version}-${{ matrix.rpm_arch }}.rpm"
+          cargo generate-rpm -p zashikura-cli \
+            --metadata-overwrite="dist/rpm-metadata.toml" \
+            -o "$rpm_file"
+          rm dist/rpm-metadata.toml
+
+          archive_dir="zashikura-${version}-linux-${{ matrix.arch }}"
+          mkdir -p "dist/$archive_dir"
+          install -m 0755 target/release/zashikura "dist/$archive_dir/zashikura"
+          install -m 0644 README.md LICENSE "dist/$archive_dir/"
+          tar -czf "dist/${archive_dir}.tar.gz" -C dist "$archive_dir"
+          rm -rf "dist/$archive_dir"
+
+          deb_file="dist/zashikura_${version}_${{ matrix.deb_arch }}.deb"
+          actual_deb_arch="$(dpkg-deb --field "$deb_file" Architecture)"
+          if [[ "$actual_deb_arch" != "${{ matrix.deb_arch }}" ]]; then
+            echo "::error::Expected Debian architecture ${{ matrix.deb_arch }}, got $actual_deb_arch"
+            exit 1
+          fi
+          dpkg-deb --contents "$deb_file" | grep -F "usr/bin/zashikura"
+          actual_rpm_arch="$(rpm -qp --qf "%{ARCH}" "$rpm_file")"
+          actual_rpm_version="$(rpm -qp --qf "%{VERSION}" "$rpm_file")"
+          actual_rpm_release="$(rpm -qp --qf "%{RELEASE}" "$rpm_file")"
+          if [[ "$actual_rpm_arch" != "${{ matrix.rpm_arch }}" ||
+                "$actual_rpm_version" != "$rpm_version" ||
+                "$actual_rpm_release" != "$rpm_release" ]]; then
+            echo "::error::Unexpected RPM metadata: $actual_rpm_arch $actual_rpm_version-$actual_rpm_release"
+            exit 1
+          fi
+          rpm -qpl "$rpm_file" | grep -Fx "/usr/bin/zashikura"
+          tar -tzf "dist/${archive_dir}.tar.gz" | grep -F "$archive_dir/zashikura"
+
+      - name: Build and verify standalone musl binary
+        shell: bash
+        run: |
+          case "${{ matrix.arch }}" in
+            x86_64) target="x86_64-unknown-linux-musl" ;;
+            aarch64) target="aarch64-unknown-linux-musl" ;;
+            *) echo "::error::Unsupported musl target"; exit 1 ;;
+          esac
+
+          cross build --release --package zashikura-cli --target "$target"
+          musl_binary="target/$target/release/zashikura"
+          if readelf -l "$musl_binary" | grep -q INTERP; then
+            echo "::error::Expected a statically linked musl executable"
+            exit 1
+          fi
+          "$musl_binary" --version
+          "$musl_binary" --help
+          "$musl_binary" about
+          "$musl_binary" inspect system --json
+          "$musl_binary" inspect machine
+
+          version="${RELEASE_VERSION#v}"
+          standalone="zashikura-${version}-linux-${{ matrix.arch }}-musl"
+          install -m 0755 "$musl_binary" "dist/$standalone"
+          archive_dir="$standalone"
+          mkdir -p "dist/$archive_dir"
+          install -m 0755 "$musl_binary" "dist/$archive_dir/zashikura"
+          install -m 0644 README.md LICENSE "dist/$archive_dir/"
+          tar -czf "dist/${archive_dir}.tar.gz" -C dist "$archive_dir"
+          rm -rf "dist/$archive_dir"
+
+      - name: Verify release directory contains files only
+        run: |
+          if find dist -mindepth 1 -maxdepth 1 -type d -print -quit | grep -q .; then
+            echo "::error::Unexpected directory in release artifact staging area"
+            exit 1
+          fi
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub Release
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
+    permissions:
+      contents: write
+    runs-on: ubuntu-22.04
+    needs: build
+    env:
+      RELEASE_VERSION: ${{ inputs.version || github.event.inputs.version || github.ref_name }}
+      IS_PRERELEASE: ${{ inputs.prerelease || (github.event_name == 'push' && contains(github.ref_name, '-')) }}
+    steps:
+      - name: Download architecture artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-linux-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate SHA-256 checksums
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          tag="${RELEASE_VERSION}"
+          if [[ "$tag" != v* ]]; then tag="v$tag"; fi
+          args=("$tag" dist/* --title "Zashikura $tag" --generate-notes)
+          if [[ "$IS_PRERELEASE" == "true" ]]; then
+            args+=(--prerelease)
+          fi
+          if [[ "$GITHUB_REF" != refs/tags/v* ]]; then
+            args+=(--target "$GITHUB_SHA")
+          else
+            args+=(--verify-tag)
+          fi
+          gh release create "${args[@]}"
