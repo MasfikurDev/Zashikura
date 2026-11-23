@@ -41,7 +41,7 @@ jobs:
             stable_range="$stable_tag..HEAD"
           else
             stable_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
-            stable_range="HEAD"
+            stable_range=""
           fi
 
           latest_tag="$(git describe --tags --abbrev=0 HEAD 2>/dev/null || true)"
@@ -82,6 +82,7 @@ jobs:
           fi
 
           bump=patch
+          if [[ -n "$stable_tag" ]]; then
           while IFS= read -r commit; do
             [[ -z "$commit" ]] && continue
             subject="$(git show -s --format=%s "$commit")"
@@ -107,13 +108,16 @@ jobs:
               [[ "$bump" == major ]] || bump=minor
             fi
           done < <(git rev-list "$stable_range")
+          fi
 
           IFS=. read -r major minor patch <<< "$stable_version"
-          case "$bump" in
-            major) major=$((major + 1)); minor=0; patch=0 ;;
-            minor) minor=$((minor + 1)); patch=0 ;;
-            patch) patch=$((patch + 1)) ;;
-          esac
+          if [[ -n "$stable_tag" ]]; then
+            case "$bump" in
+              major) major=$((major + 1)); minor=0; patch=0 ;;
+              minor) minor=$((minor + 1)); patch=0 ;;
+              patch) patch=$((patch + 1)) ;;
+            esac
+          fi
           target_version="$major.$minor.$patch"
 
           existing="$(git tag --merged HEAD --list "v$target_version-beta.*" | sed -E 's/.*-beta\.([0-9]+)$/\1/' | sort -n | tail -n 1)"
