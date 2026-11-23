@@ -66,8 +66,8 @@ jobs:
             done <<< "$files"
 
             if [[ "$has_product_file" == true ]]; then
-              if [[ "$subject" =~ ^(test|ci|style)(\\([^)]*\\))?: ]] ||
-                 [[ "$subject" =~ ^chore\\(release\\): ]]; then
+              if [[ "$subject" =~ ^(test|ci|style)(\([^)]*\))?: ]] ||
+                 [[ "$subject" =~ ^chore\(release\): ]]; then
                 continue
               fi
               has_new_release_change=true
