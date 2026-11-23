@@ -40,6 +40,15 @@ tar -xzf zashikura-VERSION-linux-x86_64.tar.gz
 sudo install -m 0755 zashikura-VERSION-linux-x86_64/zashikura /usr/local/bin/zashikura
 ```
 
+Run a static standalone binary directly (no installation or Rust toolchain required):
+
+```sh
+chmod +x zashikura-VERSION-linux-x86_64-musl
+./zashikura-VERSION-linux-x86_64-musl inspect machine
+```
+
+The matching `-musl.tar.gz` archive includes the binary, README, and license.
+
 The static standalone binaries and their `-musl.tar.gz` archives do not require glibc or a Rust toolchain. They are intended to run directly on supported Linux architectures. The GNU packages and GNU archives require glibc 2.35 or newer. Replace `VERSION` and the architecture with the downloaded release's values. Verify downloaded files using the release's `SHA256SUMS` file before running or installing:
 
 ```sh
