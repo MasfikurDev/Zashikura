@@ -85,7 +85,7 @@ impl MachineInspector for SysinfoMachineInspector {
                         sensors.push(ThermalSensor {
                             label: read_attribute(&path.join("type")).unwrap_or(name),
                             temperature_celsius: temperature,
-                            maximum_celsius: read_number(&path.join("trip_point_0_temp")).map(|v| v as f32 / 1000.0),
+                            maximum_celsius: None,
                             critical_celsius: None,
                         });
                     }
@@ -155,7 +155,7 @@ impl MachineInspector for SysinfoMachineInspector {
                     kind: read_attribute(&path.join("type")), model: read_attribute(&path.join("model_name")),
                     manufacturer: read_attribute(&path.join("manufacturer")),
                     status: read_attribute(&path.join("status")),
-                    capacity_percent: number("capacity").and_then(|v| u8::try_from(v).ok()),
+                    capacity_percent: number("capacity").and_then(|v| u8::try_from(v).ok()).filter(|v| *v <= 100),
                     voltage_microvolts: number("voltage_now"), current_microamps: number("current_now"),
                     power_microwatts: number("power_now"), energy_now_microwatt_hours: number("energy_now"),
                     energy_full_microwatt_hours: number("energy_full"),

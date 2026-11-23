@@ -51,6 +51,7 @@ cargo test --workspace --all-targets
 cargo run -p zashikura-cli -- --help
 cargo run -p zashikura-cli -- inspect system
 cargo run -p zashikura-cli -- inspect system --json
+cargo run -p zashikura-cli -- inspect machine
 ~~~
 
 ## Contributing
