@@ -14,7 +14,7 @@ The project is CLI-first. The command-line interface is the first way to use Zas
 
 ## Install
 
-Download the matching package or portable archive from [GitHub Releases](https://github.com/MasfikurDev/Zashikura/releases/latest).
+Download the matching package or portable archive from [GitHub Releases](https://github.com/MasfikurDev/Zashikura/releases/latest). Qualifying changes merged into `main` produce automatic beta pre-releases; stable releases are published after an explicit maintainer release action. See [the release process](docs/releases.md).
 
 | Linux architecture | Debian / Ubuntu | Fedora / RPM-based | Portable archive |
 | --- | --- | --- | --- |
