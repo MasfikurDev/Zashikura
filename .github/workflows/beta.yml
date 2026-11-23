@@ -48,7 +48,7 @@ jobs:
           if [[ -n "$latest_tag" ]]; then
             new_range="$latest_tag..HEAD"
           else
-            new_range="$stable_range"
+            new_range="HEAD"
           fi
 
           has_new_release_change=false
