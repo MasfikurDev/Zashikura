@@ -1,41 +1,62 @@
 # Zashikura
 
-Zashikura is an open-source tool for understanding and looking after your computer. It brings together a clearer picture of the software, resources, and activity on your machine, so you can see what is there, how things fit together, and what may need attention.
+Zashikura is a local-first tool for understanding and looking after your computer. It aims to make software, resources, activity, and their relationships easier to understand while keeping maintenance decisions under your control.
 
-The aim is to make computer maintenance and organization less of a guessing game, without getting in the way of how you use your machine.
+The project is CLI-first. The command-line interface is the first way to use Zashikura, not the boundary of its architecture. Future desktop interfaces, wrappers, automation integrations, and MCP support should reuse the same application capabilities.
 
-## What it's about
+## Project principles
 
-Zashikura is being developed around a few practical ideas:
+- **Local by default.** Machine inventory, monitoring, relationships, and history stay on the machine unless a user explicitly chooses otherwise.
+- **Transparent and controlled.** Inspection and modification are distinct. Actions that change system state must be clear and intentional.
+- **Respect application-owned data.** Application-managed directories and data are left alone by default.
+- **Useful, not intrusive.** Zashikura should help people understand and maintain their computers without aggressive optimization or unnecessary complexity.
+- **Cross-platform by design, Linux-first in development.** Keep shared logic and interfaces portable, while targeting Linux for active implementation and validation. Do not develop or test features on Windows or macOS for now.
 
-- **Know what's on your computer.** Keep track of installed software, running processes, storage, and other parts of the system.
-- **See how things fit together.** Make relationships between applications, services, files, and system resources easier to understand.
-- **Understand resource use.** Get a useful view of what is using system resources and how that changes over time.
-- **Keep things in order.** Help identify clutter and things that may deserve a closer look, while leaving decisions in your hands.
-- **Respect your machine.** Avoid unnecessary interference with applications and the data they manage.
+## Architecture
 
-These are the project's goals, not a claim that every capability is already available.
+The Rust workspace has explicit boundaries:
 
-## Privacy and control
+| Crate | Responsibility |
+| --- | --- |
+| zashikura-core | Platform-independent domain types and rules. |
+| zashikura-application | Interface-neutral use cases and ports. |
+| zashikura-platform | Operating-system discovery and system-operation adapters. |
+| zashikura-cli | CLI parsing, terminal presentation, and application composition. |
 
-Zashikura is intended to work locally and keep information about your machine on your machine by default.
+Future interfaces should call application use cases rather than implement their own system logic. Persistence is intentionally deferred until a concrete local-history or inventory requirement is designed.
 
-It should be transparent about what it observes and what it changes. Application-owned data should be left alone unless a feature is explicitly enabled or there is a clear reason to support it. Any optional data sharing should be limited, clearly explained, and under the user's control.
+See [the architecture overview](docs/architecture/overview.md) and [extension points](docs/architecture/extension-points.md) before adding a new interface or integration.
 
-## Project status
+## AI-assisted development
 
-Zashikura is in its early stages. The project direction is being established before features and workflows are treated as settled. Installation instructions, supported platforms, and technical documentation will be added as they become available.
+AI coding tools are supported through explicit repository guidance and documented architecture boundaries. AI assistance is not a runtime dependency, and no model or cloud service is required.
+
+- [Agent instructions](AGENTS.md) define repository-wide engineering, privacy, and safety requirements.
+- [AI-assisted development guide](docs/ai-assisted-development.md) explains how tools should navigate and extend the project.
+
+AI-facing integrations such as MCP will be implemented as separate interfaces over the application API. They will not receive privileged or unrestricted system access by default.
+
+## Current capabilities
+
+The initial read-only system inspection reports hostname, operating-system details, logical processor count, and memory usage. The CLI is intended to remain usable on Linux, Windows, and macOS for now. Linux is the only active development and CI validation environment; non-Linux feature work and platform-specific testing are deferred.
+
+## Development
+
+Install the stable Rust toolchain with the rustfmt and clippy components. Linux is the project's active development environment. Keep changes portable where practical, but do not use Windows or macOS as development or validation targets at this stage.
+
+~~~
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace --all-targets
+cargo run -p zashikura-cli -- --help
+cargo run -p zashikura-cli -- inspect system
+cargo run -p zashikura-cli -- inspect system --json
+~~~
 
 ## Contributing
 
-Ideas, bug reports, and thoughtful discussion are welcome. If you have a suggestion, open an issue and describe the problem you are trying to solve. For larger changes, it is best to discuss the approach before starting implementation.
-
-Please keep contributions practical, respectful of user privacy, and consistent with the project's focus on making computers easier to understand and maintain.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and the architecture documentation before making structural changes.
 
 ## License
 
-Zashikura is licensed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE) for the full license text.
-
----
-
-Zashikura is a community project. Its direction should be shaped by useful features, clear behavior, and respect for the people who use it.
+Zashikura is licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE).

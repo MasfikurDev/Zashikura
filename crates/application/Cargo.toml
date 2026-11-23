@@ -1,0 +1,10 @@
+[package]
+name = "zashikura-application"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+zashikura-core = { path = "../core" }
