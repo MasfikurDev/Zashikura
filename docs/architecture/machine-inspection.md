@@ -11,7 +11,7 @@ The current categories are:
 - **Memory:** physical total, used and available memory; swap total and used.
 - **Storage:** discovered mounted devices, filesystem, mount point, capacity, available space, removable and read-only flags.
 - **Network:** interface name and cumulative received/transmitted bytes and packets.
-- **Thermal:** kernel thermal-zone labels and available temperature/threshold readings.
+- **Thermal:** kernel thermal-zone labels, signed temperature readings, and available trip-point maximum/critical thresholds.
 - **Firmware and board:** DMI system, product, board and BIOS fields when exposed by the kernel.
 - **Graphics:** DRM card nodes, PCI vendor/device identifiers and bound driver when exposed by sysfs.
 - **Power:** power-supply type, model, manufacturer, status and available capacity/electrical/energy readings.
@@ -24,11 +24,11 @@ Each category is represented by `Inspection<T>`:
 - `Unavailable`: the source or measurement is not exposed or could not be read.
 - `Failed(InspectionFailure)`: the collector encountered a category-specific failure with a diagnostic message.
 
-The aggregator always returns every category result. A failure or unavailable result in one category does not discard successful results elsewhere. Missing measurements remain optional; they are never substituted with zero.
+The aggregator always returns every category result. A failure or unavailable result in one category does not discard successful results elsewhere. Linux sysfs directory access failures are reported as `Failed` with a diagnostic; a missing source is `Unavailable`. Individual optional attributes that are absent or unreadable remain `None`. Missing measurements are never substituted with zero.
 
 ## Collection boundaries
 
-The cross-platform adapter uses `sysinfo` for identity, CPU, memory, storage and network information. Linux-specific hardware details are read from narrowly scoped kernel interfaces under `/sys/class` (DMI, DRM, thermal and power-supply attributes). The sysinfo adapter refreshes only the CPU and memory data needed by this feature; it does not enumerate processes. These reads do not enumerate user files, inspect application-owned directories, or modify machine state.
+The cross-platform adapter uses `sysinfo` for identity, CPU, memory, storage and network information. Linux-specific hardware details are read from narrowly scoped kernel interfaces under `/sys/class` (DMI, DRM, thermal and power-supply attributes). The sysinfo adapter refreshes only the CPU and memory data needed by this feature; it does not enumerate processes. Thermal readings accept negative millidegree values, and trip-point types are used to distinguish critical thresholds. These reads do not enumerate user files, inspect application-owned directories, or modify machine state.
 
 Unsupported platform-specific categories report `Unavailable`. Do not infer hardware properties from model names or fill missing values with guesses.
 
