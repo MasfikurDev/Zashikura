@@ -164,7 +164,6 @@ jobs:
             rpm_release="0.${version#*-}"
           fi
           cat > dist/rpm-metadata.toml <<EOF
-          [package.metadata.generate-rpm]
           version = "$rpm_version"
           release = "$rpm_release"
           EOF
