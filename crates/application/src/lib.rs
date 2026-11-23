@@ -37,7 +37,9 @@ pub struct SystemInspectionError {
 impl SystemInspectionError {
     #[must_use]
     pub fn new(message: impl Into<String>) -> Self {
-        Self { message: message.into() }
+        Self {
+            message: message.into(),
+        }
     }
 }
 
@@ -58,8 +60,12 @@ mod tests {
     impl SystemInspector for FakeInspector {
         fn inspect_system(&self) -> Result<SystemSnapshot, SystemInspectionError> {
             Ok(SystemSnapshot::new(
-                Some("test-host".to_owned()), Some("test-os".to_owned()),
-                None, None, 4, MemorySnapshot::new(8_000, 2_000),
+                Some("test-host".to_owned()),
+                Some("test-os".to_owned()),
+                None,
+                None,
+                4,
+                MemorySnapshot::new(8_000, 2_000),
             ))
         }
     }

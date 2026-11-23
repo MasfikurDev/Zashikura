@@ -56,10 +56,15 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             println!("Zashikura {}", env!("CARGO_PKG_VERSION"));
             println!("A local-first tool for understanding and looking after your computer.");
         }
-        Command::Inspect { command: InspectCommand::System { json } } => {
+        Command::Inspect {
+            command: InspectCommand::System { json },
+        } => {
             let snapshot = InspectSystem::new(SysinfoSystemInspector).execute()?;
             if json {
-                println!("{}", serde_json::to_string_pretty(&SystemOutput::from(snapshot))?);
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&SystemOutput::from(snapshot))?
+                );
             } else {
                 print_system_snapshot(&snapshot);
             }
@@ -103,9 +108,15 @@ impl From<SystemSnapshot> for SystemOutput {
 fn print_system_snapshot(snapshot: &SystemSnapshot) {
     println!("System");
     println!("  Hostname: {}", display_optional(&snapshot.hostname));
-    println!("  Operating system: {}", display_optional(&snapshot.os_name));
+    println!(
+        "  Operating system: {}",
+        display_optional(&snapshot.os_name)
+    );
     println!("  OS version: {}", display_optional(&snapshot.os_version));
-    println!("  Kernel version: {}", display_optional(&snapshot.kernel_version));
+    println!(
+        "  Kernel version: {}",
+        display_optional(&snapshot.kernel_version)
+    );
     println!("  Logical processors: {}", snapshot.logical_cpu_count);
     println!(
         "  Memory: {} / {}",
@@ -164,7 +175,9 @@ mod tests {
         let cli = Cli::try_parse_from(["zashikura", "inspect", "system", "--json"]).unwrap();
         assert!(matches!(
             cli.command,
-            Command::Inspect { command: InspectCommand::System { json: true } }
+            Command::Inspect {
+                command: InspectCommand::System { json: true }
+            }
         ));
     }
 

@@ -29,14 +29,24 @@ impl SystemSnapshot {
         logical_cpu_count: usize,
         memory: MemorySnapshot,
     ) -> Self {
-        Self { hostname, os_name, os_version, kernel_version, logical_cpu_count, memory }
+        Self {
+            hostname,
+            os_name,
+            os_version,
+            kernel_version,
+            logical_cpu_count,
+            memory,
+        }
     }
 }
 
 impl MemorySnapshot {
     #[must_use]
     pub const fn new(total_bytes: u64, used_bytes: u64) -> Self {
-        Self { total_bytes, used_bytes }
+        Self {
+            total_bytes,
+            used_bytes,
+        }
     }
 }
 
@@ -47,7 +57,11 @@ mod tests {
     #[test]
     fn snapshots_preserve_unknown_platform_fields() {
         let snapshot = SystemSnapshot::new(
-            None, Some("Example OS".to_owned()), None, None, 8,
+            None,
+            Some("Example OS".to_owned()),
+            None,
+            None,
+            8,
             MemorySnapshot::new(16_000, 4_000),
         );
         assert_eq!(snapshot.hostname, None);
