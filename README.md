@@ -16,10 +16,10 @@ The project is CLI-first. The command-line interface is the first way to use Zas
 
 Download the matching package or portable archive from [GitHub Releases](https://github.com/MasfikurDev/Zashikura/releases/latest). Qualifying changes merged into `main` produce automatic beta pre-releases; stable releases are published after an explicit maintainer release action. See [the release process](docs/releases.md).
 
-| Linux architecture | Debian / Ubuntu | Fedora / RPM-based | Portable archive |
-| --- | --- | --- | --- |
-| x86_64 | `zashikura_VERSION_amd64.deb` | `zashikura-VERSION-1.x86_64.rpm` | `zashikura-VERSION-linux-x86_64.tar.gz` |
-| ARM64 | `zashikura_VERSION_arm64.deb` | `zashikura-VERSION-1.aarch64.rpm` | `zashikura-VERSION-linux-aarch64.tar.gz` |
+| Linux architecture | Debian / Ubuntu | Fedora / RPM-based | GNU archive | Static standalone binary |
+| --- | --- | --- | --- | --- |
+| x86_64 | `zashikura_VERSION_amd64.deb` | `zashikura-VERSION-1.x86_64.rpm` | `zashikura-VERSION-linux-x86_64.tar.gz` | `zashikura-VERSION-linux-x86_64-musl` |
+| ARM64 | `zashikura_VERSION_arm64.deb` | `zashikura-VERSION-1.aarch64.rpm` | `zashikura-VERSION-linux-aarch64.tar.gz` | `zashikura-VERSION-linux-aarch64-musl` |
 
 Install a Debian package:
 
@@ -40,7 +40,7 @@ tar -xzf zashikura-VERSION-linux-x86_64.tar.gz
 sudo install -m 0755 zashikura-VERSION-linux-x86_64/zashikura /usr/local/bin/zashikura
 ```
 
-Replace `VERSION` and the architecture with the downloaded release's values. The Linux GNU builds require glibc 2.35 or newer. Verify downloaded files using the release's `SHA256SUMS` file before installing:
+The static standalone binaries and their `-musl.tar.gz` archives do not require glibc or a Rust toolchain. They are intended to run directly on supported Linux architectures. The GNU packages and GNU archives require glibc 2.35 or newer. Replace `VERSION` and the architecture with the downloaded release's values. Verify downloaded files using the release's `SHA256SUMS` file before running or installing:
 
 ```sh
 sha256sum -c SHA256SUMS
