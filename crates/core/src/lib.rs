@@ -30,7 +30,7 @@ impl<T> Inspection<T> {
 pub struct InspectionFailure {
     pub message: String,
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct MachineSnapshot {
     pub identity: Inspection<MachineIdentity>,
     pub processor: Inspection<ProcessorInfo>,
