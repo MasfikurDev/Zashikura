@@ -10,7 +10,7 @@ The project is CLI-first. The command-line interface is the first way to use Zas
 - **Transparent and controlled.** Inspection and modification are distinct. Actions that change system state must be clear and intentional.
 - **Respect application-owned data.** Application-managed directories and data are left alone by default.
 - **Useful, not intrusive.** Zashikura should help people understand and maintain their computers without aggressive optimization or unnecessary complexity.
-- **Platform-aware, consistently designed.** Operating-system-specific behavior belongs behind platform adapters, not in the user interface or domain logic.
+- **Cross-platform by design, Linux-first in development.** Keep shared logic and interfaces portable, while targeting Linux for active implementation and validation. Do not develop or test features on Windows or macOS for now.
 
 ## Architecture
 
@@ -38,11 +38,11 @@ AI-facing integrations such as MCP will be implemented as separate interfaces ov
 
 ## Current capabilities
 
-The initial read-only system inspection reports hostname, operating-system details, logical processor count, and memory usage. Fields unavailable on a platform are represented as unknown rather than fabricated.
+The initial read-only system inspection reports hostname, operating-system details, logical processor count, and memory usage. The CLI is intended to remain usable on Linux, Windows, and macOS for now. Linux is the only active development and CI validation environment; non-Linux feature work and platform-specific testing are deferred.
 
 ## Development
 
-Install the stable Rust toolchain with the rustfmt and clippy components.
+Install the stable Rust toolchain with the rustfmt and clippy components. Linux is the project's active development environment. Keep changes portable where practical, but do not use Windows or macOS as development or validation targets at this stage.
 
 ~~~
 cargo fmt --all -- --check

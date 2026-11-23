@@ -2,6 +2,14 @@
 
 These instructions apply to the entire repository. Follow them alongside the user's request and the relevant architecture documentation.
 
+## Platform development policy
+
+- Linux is the only active development and validation platform for now. Implement and test actual features on Linux.
+- Keep the architecture, shared Rust code, and CLI portable. The existing CLI commands are intended to remain usable on Linux, Windows, and macOS.
+- Do not perform feature development, platform-specific implementation, or routine validation on Windows or macOS. Do not add non-Linux CI jobs at this stage.
+- Avoid Linux-only assumptions in shared code. Isolate Linux-specific behavior behind platform adapters so other operating systems can be supported later.
+- When a feature genuinely requires non-Linux-specific behavior, document the gap and defer that implementation rather than silently narrowing the shared API.
+
 ## Before changing code
 
 1. Read this file and the relevant sections of `README.md`.
@@ -55,7 +63,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-For platform-specific changes, validate on the affected operating systems or clearly report which platforms were not tested. Do not treat a successful compile on one operating system as proof of cross-platform behavior.
+Run development and validation on Linux only. Keep shared code portable, but clearly distinguish intended CLI portability from verified platform support. Do not claim Windows or macOS validation unless it was explicitly performed in a separately authorized effort.
 
 ## Working with the user
 

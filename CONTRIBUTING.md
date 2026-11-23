@@ -1,6 +1,6 @@
 # Contributing
 
-Contributions should preserve Zashikura's local-first design, clear user control, and respect for application-owned data.
+Contributions should preserve Zashikura's local-first design, clear user control, and respect for application-owned data. Linux is the active development and validation platform. Keep shared code and CLI behavior portable to Windows and macOS, but do not perform feature development or routine validation on those systems for now.
 
 ## Before changing architecture
 
@@ -15,7 +15,7 @@ For a new crate, interface, platform adapter, persistence mechanism, or integrat
 - Command parsing and terminal presentation belong in `zashikura-cli`.
 - New interfaces should call application capabilities. They must not duplicate domain rules or access operating-system APIs directly.
 
-Keep operating-system-specific behavior out of the core and application crates. Keep terminal formatting out of application services.
+Keep operating-system-specific behavior out of the core and application crates. Keep terminal formatting out of application services. Linux-specific implementation belongs behind platform adapters; do not introduce Linux assumptions into shared application contracts.
 
 ## Safety and privacy
 

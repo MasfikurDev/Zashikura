@@ -6,6 +6,10 @@ The architecture supports a CLI-first release without making the CLI the applica
 
 The design follows ports and adapters. It should grow in response to real features rather than speculative framework requirements.
 
+## Platform strategy
+
+Zashikura is cross-platform by architectural intent, with Linux as the sole active development and validation target for now. The existing CLI is intended to remain usable on Linux, Windows, and macOS. Shared domain and application code must remain portable, and operating-system-specific behavior must stay behind platform adapters. Do not develop features or run routine validation on Windows or macOS at this stage. Non-Linux platform-specific implementation and verification are deferred until explicitly prioritized.
+
 ## Workspace
 
 ~~~
