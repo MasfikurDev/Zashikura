@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 use serde::Serialize;
 use zashikura_application::{InspectMachine, InspectSystem};
 use zashikura_core::{Inspection, MachineSnapshot, SystemSnapshot};
-use zashikura_platform::{SysinfoMachineInspector, SysinfoSystemInspector};
+use zashikura_platform::SysinfoMachineInspector;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -61,7 +61,7 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Command::Inspect {
             command: InspectCommand::System { json },
         } => {
-            let snapshot = InspectSystem::new(SysinfoSystemInspector).execute()?;
+            let snapshot = InspectSystem::new(SysinfoMachineInspector).execute()?;
             if json {
                 println!(
                     "{}",
