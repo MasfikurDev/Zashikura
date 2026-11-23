@@ -21,8 +21,8 @@ sha256sum -c SHA256SUMS
 
 1. Ensure the intended changes are merged into `main` and CI is green.
 2. Update the workspace version in the root `Cargo.toml`. All workspace crates inherit this version.
-3. Update and commit `Cargo.lock` when dependency resolution changes.
-4. Merge the version change into `main`.
+3. The repository does not yet track a `Cargo.lock`. Generate and commit it before the first stable release; keep it updated when dependency resolution changes.
+4. Merge the version and lockfile changes into `main`.
 5. Create and push a matching version tag from the release commit:
 
    ```sh
