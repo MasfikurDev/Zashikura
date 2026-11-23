@@ -53,10 +53,6 @@ jobs:
           while IFS= read -r commit; do
             [[ -z "$commit" ]] && continue
             subject="$(git show -s --format=%s "$commit")"
-            if [[ "$subject" =~ ^(docs|test|ci|style|chore)(\([^)]*\))?: ]]; then
-              continue
-            fi
-
             files="$(git diff-tree --no-commit-id --name-only -r "$commit")"
             has_product_file=false
             while IFS= read -r file; do
@@ -98,7 +94,8 @@ jobs:
               esac
             done <<< "$files"
             [[ "$has_product_file" == true ]] || continue
-            if [[ "$subject" =~ ^(docs|test|ci|style|chore)(\([^)]*\))?: ]]; then
+            if [[ "$subject" =~ ^(docs|test|ci|style)(\([^)]*\))?: ]] ||
+               [[ "$subject" =~ ^chore\(release\): ]]; then
               continue
             fi
             if [[ "$subject" =~ !: ]] || grep -q '^BREAKING CHANGE:' <<< "$body"; then
