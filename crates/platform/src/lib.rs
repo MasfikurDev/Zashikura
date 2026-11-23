@@ -11,7 +11,14 @@ use zashikura_core::{MemorySnapshot, SystemSnapshot};
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SysinfoMachineInspector;
 
-pub type SysinfoSystemInspector = SysinfoMachineInspector;
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SysinfoSystemInspector;
+
+impl SystemInspector for SysinfoSystemInspector {
+    fn inspect_system(&self) -> Result<SystemSnapshot, SystemInspectionError> {
+        SysinfoMachineInspector.inspect_system()
+    }
+}
 
 impl SystemInspector for SysinfoMachineInspector {
     fn inspect_system(&self) -> Result<SystemSnapshot, SystemInspectionError> {
