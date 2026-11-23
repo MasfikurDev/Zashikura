@@ -211,7 +211,7 @@ jobs:
             x86_64) export CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc ;;
             aarch64) export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc ;;
           esac
-          cargo build --release --package zashikura-cli --target "$target"
+          RUSTFLAGS="-C target-feature=+crt-static" cargo build --release --package zashikura-cli --target "$target"
           musl_binary="target/$target/release/zashikura"
           if readelf -l "$musl_binary" | grep -q INTERP; then
             echo "::error::Expected a statically linked musl executable"
