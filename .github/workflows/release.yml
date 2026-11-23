@@ -166,6 +166,7 @@ jobs:
           install -m 0755 target/release/zashikura "dist/$archive_dir/zashikura"
           install -m 0644 README.md LICENSE "dist/$archive_dir/"
           tar -czf "dist/${archive_dir}.tar.gz" -C dist "$archive_dir"
+          rm -rf "dist/$archive_dir"
 
           deb_file="dist/zashikura_${version}_${{ matrix.deb_arch }}.deb"
           rpm_file="dist/zashikura-${version}-1.${{ matrix.rpm_arch }}.rpm"
@@ -212,6 +213,14 @@ jobs:
           install -m 0755 "$musl_binary" "dist/$archive_dir/zashikura"
           install -m 0644 README.md LICENSE "dist/$archive_dir/"
           tar -czf "dist/${archive_dir}.tar.gz" -C dist "$archive_dir"
+          rm -rf "dist/$archive_dir"
+
+      - name: Verify release directory contains files only
+        run: |
+          if find dist -mindepth 1 -maxdepth 1 -type d -print -quit | grep -q .; then
+            echo "::error::Unexpected directory in release artifact staging area"
+            exit 1
+          fi
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
