@@ -25,7 +25,7 @@ The Rust workspace has explicit boundaries:
 
 Future interfaces should call application use cases rather than implement their own system logic. Persistence is intentionally deferred until a concrete local-history or inventory requirement is designed.
 
-See [the architecture overview](docs/architecture/overview.md) and [extension points](docs/architecture/extension-points.md) before adding a new interface or integration.
+See [the architecture overview](docs/architecture/overview.md), [platform capability design](docs/architecture/platform-capabilities.md), and [extension points](docs/architecture/extension-points.md) before adding a new interface or integration.
 
 ## AI-assisted development
 
